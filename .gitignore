@@ -1,0 +1,26 @@
+# Swift / SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# Built app bundle
+*.app/
+Veil.app/
+
+# Bundled core binaries (fetch with Scripts/fetch-xray.sh & fetch-tun2socks.sh)
+Sources/XrayClient/Resources/xray
+Sources/XrayClient/Resources/sing-box
+Sources/XrayClient/Resources/tun2socks
+
+# Release artifacts
+*.zip
+*.dmg
+dist/
+
+# Editor
+.vscode/
+*.xcodeproj
+*.xcworkspace

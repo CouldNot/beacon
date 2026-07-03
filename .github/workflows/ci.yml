@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select latest Xcode (macOS 26 SDK)
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Fetch core binaries
+        run: |
+          Scripts/fetch-xray.sh
+          Scripts/fetch-singbox.sh
+          Scripts/fetch-tun2socks.sh
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test

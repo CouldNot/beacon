@@ -1,0 +1,325 @@
+import Foundation
+import Network
+import Observation
+import os
+
+/// TCP-connect latency tester. Measures time to establish a TCP connection to
+/// each server's address:port — a good proxy for reachability + RTT without
+/// needing the full proxy handshake.
+@MainActor
+@Observable
+final class PingTester {
+    /// Latency in milliseconds per server id. nil value = unreachable/timeout.
+    private(set) var results: [UUID: Int?] = [:]
+    /// Server ids currently being tested.
+    private(set) var testing: Set<UUID> = []
+
+    /// Test a batch of servers concurrently (bounded), updating results live.
+    /// When `tunActive` is true, host-routes are added first so probes bypass
+    /// the tunnel and measure real RTT (then cleaned up afterwards).
+    func test(_ servers: [ProxyConfig], tunActive: Bool = false, timeout: TimeInterval = 3.0) {
+        for s in servers { testing.insert(s.id) }
+        let targets = servers.map {
+            ($0.id, $0.address, $0.port, $0.pingStrategy, $0.sni, $0.alpn)
+        }
+
+        Task.detached(priority: .userInitiated) {
+            // Resolve hostnames to IPs and pin them off the tunnel for the test.
+            var pinnedIPs: [String] = []
+            if tunActive {
+                for (_, host, _, _, _, _) in targets {
+                    pinnedIPs.append(contentsOf: TunManager.resolveIPs(host: host))
+                }
+                // Route manipulation runs a blocking `sudo -n` Process — keep it
+                // off the main thread so the UI stays responsive.
+                TunManager.pingRouteAdd(pinnedIPs)
+                // Give the routing table a moment to settle.
+                try? await Task.sleep(nanoseconds: 200_000_000)
+            }
+
+            await withTaskGroup(of: (UUID, Int?).self) { group in
+                let maxConcurrent = 16
+                var iterator = targets.makeIterator()
+
+                func addNext(_ group: inout TaskGroup<(UUID, Int?)>) {
+                    guard let (id, host, port, strategy, sni, alpn) = iterator.next() else { return }
+                    group.addTask {
+                        let ms: Int?
+                        switch strategy {
+                        case .tcp:
+                            ms = await PingTester.tcpLatency(host: host, port: port, timeout: timeout)
+                        case .quic:
+                            // Hysteria2/TUIC speak QUIC — time a real QUIC+TLS
+                            // handshake to the UDP port.
+                            ms = await PingTester.quicLatency(host: host, port: port,
+                                                              sni: sni, alpn: alpn,
+                                                              timeout: timeout)
+                        case .icmp:
+                            // WireGuard: no TCP port, not QUIC — ICMP echo.
+                            ms = await PingTester.icmpLatency(host: host, timeout: timeout)
+                        }
+                        return (id, ms)
+                    }
+                }
+
+                for _ in 0..<maxConcurrent { addNext(&group) }
+
+                // Batch results to reduce @Observable churn and keep scrolling smooth.
+                var pending: [UUID: Int?] = [:]
+                var lastFlush = DispatchTime.now()
+                let flushIntervalNs: UInt64 = 150_000_000
+
+                while let (id, ms) = await group.next() {
+                    pending[id] = ms
+                    addNext(&group)
+                    let now = DispatchTime.now()
+                    if now.uptimeNanoseconds - lastFlush.uptimeNanoseconds >= flushIntervalNs {
+                        let snapshot = pending
+                        pending.removeAll()
+                        lastFlush = now
+                        await self.applyResults(snapshot)
+                    }
+                }
+                if !pending.isEmpty { await self.applyResults(pending) }
+            }
+
+            if tunActive {
+                TunManager.pingRouteDel()
+            }
+        }
+    }
+
+    private func applyResults(_ batch: [UUID: Int?]) {
+        for (id, ms) in batch {
+            results[id] = .some(ms)
+            testing.remove(id)
+        }
+    }
+
+    func latency(for id: UUID) -> Int?? {
+        results[id]
+    }
+
+    func isTesting(_ id: UUID) -> Bool { testing.contains(id) }
+
+    func clear() {
+        results.removeAll()
+        testing.removeAll()
+    }
+
+    // MARK: - Low-level TCP connect timing
+
+    /// Returns latency in ms, or nil on failure/timeout. Runs off the main actor.
+    nonisolated static func tcpLatency(host: String, port: Int, timeout: TimeInterval) async -> Int? {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let ms = blockingTCPLatency(host: host, port: port, timeout: timeout)
+                continuation.resume(returning: ms)
+            }
+        }
+    }
+
+    private nonisolated static func blockingTCPLatency(host: String, port: Int, timeout: TimeInterval) -> Int? {
+        var hints = addrinfo(ai_flags: 0, ai_family: AF_UNSPEC, ai_socktype: SOCK_STREAM,
+                             ai_protocol: IPPROTO_TCP, ai_addrlen: 0,
+                             ai_canonname: nil, ai_addr: nil, ai_next: nil)
+        var info: UnsafeMutablePointer<addrinfo>?
+        guard getaddrinfo(host, String(port), &hints, &info) == 0, let addr = info else {
+            return nil
+        }
+        defer { freeaddrinfo(info) }
+
+        let fd = socket(addr.pointee.ai_family, addr.pointee.ai_socktype, addr.pointee.ai_protocol)
+        guard fd >= 0 else { return nil }
+        defer { close(fd) }
+
+        // Non-blocking connect with select() for a precise timeout.
+        let flags = fcntl(fd, F_GETFL, 0)
+        _ = fcntl(fd, F_SETFL, flags | O_NONBLOCK)
+
+        let start = DispatchTime.now()
+        let res = connect(fd, addr.pointee.ai_addr, addr.pointee.ai_addrlen)
+        if res == 0 {
+            return elapsedMs(from: start)
+        }
+        if errno != EINPROGRESS { return nil }
+
+        // Wait for the socket to become writable (connect completes) using
+        // poll(). poll() — unlike select()/fd_set — has no FD_SETSIZE (1024)
+        // limit, so it is safe when many sockets are open concurrently (the
+        // select() path used to trap with a buffer overrun once a socket fd
+        // climbed past 1023, e.g. during concurrent ping tests).
+        var pfd = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
+        let timeoutMs = Int32(max(0, (timeout * 1000).rounded()))
+        let sel = poll(&pfd, 1, timeoutMs)
+        guard sel > 0 else { return nil } // timeout or error
+
+        // Confirm the connection actually succeeded.
+        var soError: Int32 = 0
+        var len = socklen_t(MemoryLayout<Int32>.size)
+        getsockopt(fd, SOL_SOCKET, SO_ERROR, &soError, &len)
+        guard soError == 0 else { return nil }
+
+        return elapsedMs(from: start)
+    }
+
+    private nonisolated static func elapsedMs(from start: DispatchTime) -> Int {
+        let ns = DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds
+        // Round to nearest ms, but never report 0 for a successful connect.
+        return max(1, Int((Double(ns) / 1_000_000.0).rounded()))
+    }
+
+    // MARK: - QUIC handshake timing (Hysteria2 / TUIC)
+
+    /// Returns the time to complete a real QUIC + TLS handshake to the server's
+    /// UDP port, in ms, or nil on failure/timeout. This is the honest probe for
+    /// QUIC protocols: it exercises the same UDP datagram path and TLS handshake
+    /// the proxy itself uses, rather than guessing from an ICMP echo. Runs off
+    /// the main actor.
+    nonisolated static func quicLatency(host: String, port: Int,
+                                        sni: String?, alpn: [String]?,
+                                        timeout: TimeInterval) async -> Int? {
+        guard #available(macOS 15.0, *) else {
+            // QUIC NWParameters init isn't available pre-15 — fall back to ICMP
+            // so these servers still get a reachability number.
+            return await icmpLatency(host: host, timeout: timeout)
+        }
+
+        let quicOptions = NWProtocolQUIC.Options(alpn: alpn?.isEmpty == false ? alpn! : ["h3"])
+        // Set the SNI when the link carried one, so the server selects the right
+        // certificate / virtual host during the handshake.
+        if let sni, !sni.isEmpty {
+            sec_protocol_options_set_tls_server_name(quicOptions.securityProtocolOptions, sni)
+        }
+        // This is a reachability probe, not real traffic — accept whatever
+        // certificate the server presents so the handshake can complete and be
+        // timed even for self-signed / insecure setups.
+        sec_protocol_options_set_verify_block(
+            quicOptions.securityProtocolOptions,
+            { _, _, complete in complete(true) },
+            DispatchQueue.global(qos: .userInitiated)
+        )
+
+        let params = NWParameters(quic: quicOptions)
+        let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(host),
+                                           port: NWEndpoint.Port(rawValue: UInt16(port)) ?? .any)
+        let connection = NWConnection(to: endpoint, using: params)
+        let queue = DispatchQueue(label: "quic-ping-\(UUID().uuidString)")
+
+        let start = DispatchTime.now()
+        // The resumer guarantees the continuation fires exactly once — on
+        // .ready (success), .failed/.cancelled (failure), or the timeout below.
+        let result: Int? = await withCheckedContinuation { (continuation: CheckedContinuation<Int?, Never>) in
+            let resumer = QUICProbeResumer(connection: connection, continuation: continuation)
+            connection.stateUpdateHandler = { state in
+                switch state {
+                case .ready:    resumer.finish(elapsedMs(from: start))
+                case .failed, .cancelled: resumer.finish(nil)
+                default:        break
+                }
+            }
+            queue.asyncAfter(deadline: .now() + timeout) { resumer.finish(nil) }
+            connection.start(queue: queue)
+        }
+        return result
+    }
+
+    /// Resumes a QUIC-probe continuation exactly once and tears down the
+    /// connection, regardless of which event (ready / failure / timeout) arrives
+    /// first. `@unchecked Sendable` is safe: all mutable state is guarded by the
+    /// internal lock.
+    private final class QUICProbeResumer: @unchecked Sendable {
+        private let lock = OSAllocatedUnfairLock(initialState: false)
+        private let connection: NWConnection
+        private let continuation: CheckedContinuation<Int?, Never>
+
+        init(connection: NWConnection, continuation: CheckedContinuation<Int?, Never>) {
+            self.connection = connection
+            self.continuation = continuation
+        }
+
+        func finish(_ value: Int?) {
+            let already = lock.withLock { done -> Bool in
+                if done { return true }
+                done = true
+                return false
+            }
+            if already { return }
+            connection.cancel()
+            continuation.resume(returning: value)
+        }
+    }
+
+    // MARK: - ICMP echo timing (for QUIC/UDP protocols)
+
+    /// Returns round-trip latency in ms via an ICMP echo, or nil on
+    /// failure/timeout. Used for Hysteria2/TUIC/WireGuard, which expose no TCP
+    /// port. Runs off the main actor.
+    nonisolated static func icmpLatency(host: String, timeout: TimeInterval) async -> Int? {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let ms = blockingICMPLatency(host: host, timeout: timeout)
+                continuation.resume(returning: ms)
+            }
+        }
+    }
+
+    /// Sends a single ICMP echo request and waits for the matching reply.
+    ///
+    /// macOS grants unprivileged processes datagram-mode ICMP sockets
+    /// (`SOCK_DGRAM` + `IPPROTO_ICMP`) — no root or setuid needed. The kernel
+    /// fills in the identifier and validates replies, so we only match on the
+    /// echo sequence number.
+    private nonisolated static func blockingICMPLatency(host: String, timeout: TimeInterval) -> Int? {
+        // Resolve to an IPv4 address. (Datagram ICMP here targets IPv4/ICMPv4.)
+        var hints = addrinfo(ai_flags: 0, ai_family: AF_INET, ai_socktype: SOCK_DGRAM,
+                             ai_protocol: IPPROTO_ICMP, ai_addrlen: 0,
+                             ai_canonname: nil, ai_addr: nil, ai_next: nil)
+        var info: UnsafeMutablePointer<addrinfo>?
+        guard getaddrinfo(host, nil, &hints, &info) == 0, let addr = info else {
+            return nil
+        }
+        defer { freeaddrinfo(info) }
+
+        let fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP)
+        guard fd >= 0 else { return nil }
+        defer { close(fd) }
+
+        // ICMP echo request header: type(8) code(0) checksum id seq.
+        // In datagram mode the kernel overwrites id and the checksum, but a
+        // correct checksum is harmless, so we leave it zero and let the OS fill.
+        let seq = UInt16.random(in: 0...UInt16.max)
+        var packet = [UInt8](repeating: 0, count: 8)
+        packet[0] = 8                       // type = echo request
+        packet[1] = 0                       // code
+        packet[2] = 0; packet[3] = 0        // checksum (kernel computes)
+        packet[4] = 0; packet[5] = 0        // identifier (kernel sets)
+        packet[6] = UInt8(seq >> 8)         // sequence hi
+        packet[7] = UInt8(seq & 0xff)       // sequence lo
+
+        let start = DispatchTime.now()
+        let sent = packet.withUnsafeBytes { raw -> Int in
+            sendto(fd, raw.baseAddress, raw.count, 0,
+                   addr.pointee.ai_addr, addr.pointee.ai_addrlen)
+        }
+        guard sent == packet.count else { return nil }
+
+        // Wait for a reply, honouring the timeout via poll().
+        var pfd = pollfd(fd: fd, events: Int16(POLLIN), revents: 0)
+        let timeoutMs = Int32(max(0, (timeout * 1000).rounded()))
+        let ready = poll(&pfd, 1, timeoutMs)
+        guard ready > 0 else { return nil } // timeout or error
+
+        var buf = [UInt8](repeating: 0, count: 64)
+        let n = buf.withUnsafeMutableBytes { recv(fd, $0.baseAddress, $0.count, 0) }
+        guard n >= 8 else { return nil }
+
+        // Datagram-mode replies start at the ICMP header (no IP header). Confirm
+        // it's an echo reply (type 0) for our sequence number.
+        guard buf[0] == 0 else { return nil }
+        let replySeq = (UInt16(buf[6]) << 8) | UInt16(buf[7])
+        guard replySeq == seq else { return nil }
+
+        return elapsedMs(from: start)
+    }
+}

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veil — Native macOS VPN client for Xray-core</title>
+<meta name="description" content="Veil is a native macOS VPN client for the Xray-core and sing-box proxy engines. VLESS, VMess, Trojan, Shadowsocks, Hysteria2, TUIC, WireGuard, AnyTLS, Reality. System Proxy & TUN modes, subscriptions, QR import, professional routing.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%237c3aed'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Cpath d='M50 82 L22 70 L22 40 Q22 24 50 18 Q78 24 78 40 L78 70 Z' fill='%23ffffff' opacity='.96'/%3E%3Cpath d='M36 32 L44 32 L50 58 L56 32 L64 32 L52 70 L48 70 Z' fill='%237c3aed'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0b0b12; --bg2:#11111c; --card:#15151f; --line:#23232f;
+    --txt:#e9e9f2; --mut:#a1a1b3; --ind:#6366f1; --vio:#7c3aed; --grn:#34d399;
+    --grad:linear-gradient(120deg,#6366f1,#7c3aed);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--txt); line-height:1.6; -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  /* Nav */
+  nav{
+    position:sticky;top:0;z-index:50;backdrop-filter:saturate(180%) blur(14px);
+    background:rgba(11,11,18,.72);border-bottom:1px solid var(--line);
+  }
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px}
+  .logo{width:30px;height:30px;border-radius:9px}
+  .nav-links{display:flex;align-items:center;gap:22px}
+  .nav-links a{color:var(--mut);font-size:14px;font-weight:500;transition:color .2s}
+  .nav-links a:hover{color:var(--txt)}
+  .lang{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .lang button{
+    background:transparent;color:var(--mut);border:0;padding:6px 11px;font-size:13px;
+    font-weight:600;cursor:pointer;transition:.2s
+  }
+  .lang button.on{background:var(--grad);color:#fff}
+  @media(max-width:680px){.nav-links a.hide-sm{display:none}}
+
+  /* Hero */
+  .hero{position:relative;padding:96px 0 72px;text-align:center;overflow:hidden}
+  .hero::before{
+    content:"";position:absolute;inset:0;z-index:-1;
+    background:radial-gradient(900px 420px at 50% -10%,rgba(124,58,237,.35),transparent 70%),
+               radial-gradient(700px 360px at 80% 10%,rgba(99,102,241,.22),transparent 70%);
+  }
+  .hero .logo-lg{width:96px;height:96px;border-radius:24px;margin:0 auto 26px;display:block;
+    box-shadow:0 20px 60px rgba(124,58,237,.45)}
+  .hero h1{font-size:clamp(34px,6vw,60px);font-weight:800;letter-spacing:-.02em;line-height:1.05}
+  .hero h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.sub{margin:20px auto 0;max-width:640px;font-size:clamp(16px,2.4vw,20px);color:var(--mut)}
+  .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:36px}
+  .btn{padding:13px 26px;border-radius:12px;font-weight:600;font-size:15px;transition:.2s;border:1px solid transparent}
+  .btn-p{background:var(--grad);color:#fff;box-shadow:0 8px 24px rgba(124,58,237,.4)}
+  .btn-p:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(124,58,237,.5)}
+  .btn-s{background:var(--card);border-color:var(--line);color:var(--txt)}
+  .btn-s:hover{border-color:var(--vio)}
+  .meta{margin-top:18px;font-size:13px;color:var(--mut)}
+
+  /* Sections */
+  section{padding:64px 0}
+  h2{font-size:clamp(26px,4vw,38px);font-weight:800;letter-spacing:-.02em;text-align:center}
+  .lead{text-align:center;color:var(--mut);max-width:620px;margin:14px auto 0;font-size:16px}
+
+  /* Feature grid */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:46px}
+  @media(max-width:880px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;
+    transition:.25s
+  }
+  .card:hover{border-color:var(--vio);transform:translateY(-3px)}
+  .ic{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;margin-bottom:16px;
+    background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(124,58,237,.2));font-size:22px}
+  .card h3{font-size:17px;font-weight:700;margin-bottom:7px}
+  .card p{font-size:14px;color:var(--mut)}
+
+  /* Modes */
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:46px}
+  @media(max-width:680px){.modes{grid-template-columns:1fr}}
+  .mode{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:30px}
+  .mode .tag{display:inline-block;font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px;
+    background:rgba(124,58,237,.18);color:#c4b5fd;margin-bottom:14px}
+  .mode h3{font-size:21px;font-weight:700;margin-bottom:10px}
+  .mode ul{list-style:none;margin-top:14px}
+  .mode li{font-size:14px;color:var(--mut);padding-left:24px;position:relative;margin:8px 0}
+  .mode li::before{content:"✓";position:absolute;left:0;color:var(--grn);font-weight:700}
+
+  /* Routing band */
+  .band{background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .route-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;margin-top:40px}
+  @media(max-width:760px){.route-grid{grid-template-columns:1fr}}
+  .route-list li{font-size:15px;margin:12px 0;padding-left:26px;position:relative;color:var(--mut)}
+  .route-list li b{color:var(--txt)}
+  .route-list li::before{content:"▸";position:absolute;left:0;color:var(--vio)}
+  .codebox{background:#0a0a10;border:1px solid var(--line);border-radius:14px;padding:20px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:#cbd5e1;overflow:auto}
+  .codebox .k{color:#c4b5fd}.codebox .s{color:#86efac}.codebox .c{color:#64748b}
+
+  /* Steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:46px}
+  @media(max-width:680px){.steps{grid-template-columns:1fr}}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;position:relative}
+  .step .n{font-size:13px;font-weight:800;color:var(--vio)}
+  .step h3{font-size:17px;margin:8px 0 6px}
+  .step p{font-size:14px;color:var(--mut)}
+
+  /* Download */
+  .dl{text-align:center}
+  .dl .box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:48px 32px;margin-top:36px}
+  .pills{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+  .pill{font-size:13px;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:6px 14px}
+
+  footer{border-top:1px solid var(--line);padding:40px 0;color:var(--mut);font-size:13px;text-align:center}
+  footer a{color:#c4b5fd}
+  .disc{max-width:680px;margin:14px auto 0;font-size:12px;color:#6b6b7d}
+  body.lang-en [data-ru]{display:none}
+  body.lang-ru [data-en]{display:none}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="vg" x1="0" y1="1" x2="1" y2="0">
+    <stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#7c3aed"/>
+  </linearGradient></defs></svg>
+
+<nav>
+  <div class="wrap nav-in">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="url(#vg)"/><path d="M50 82 L22 70 L22 40 Q22 24 50 18 Q78 24 78 40 L78 70 Z" fill="#fff" opacity=".96"/><path d="M36 32 L44 32 L50 58 L56 32 L64 32 L52 70 L48 70 Z" fill="#7c3aed"/></svg>
+      Veil
+    </div>
+    <div class="nav-links">
+      <a href="#features" class="hide-sm" data-en>Features</a><a href="#features" class="hide-sm" data-ru>Возможности</a>
+      <a href="#routing" class="hide-sm" data-en>Routing</a><a href="#routing" class="hide-sm" data-ru>Маршрутизация</a>
+      <a href="#download" data-en>Download</a><a href="#download" data-ru>Скачать</a>
+      <div class="lang">
+        <button id="b-en" class="on" onclick="setLang('en')">EN</button>
+        <button id="b-ru" onclick="setLang('ru')">RU</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <svg class="logo-lg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="url(#vg)"/><path d="M50 82 L22 70 L22 40 Q22 24 50 18 Q78 24 78 40 L78 70 Z" fill="#fff" opacity=".96"/><path d="M36 32 L44 32 L50 58 L56 32 L64 32 L52 70 L48 70 Z" fill="#7c3aed"/></svg>
+    <h1 data-en>The native <span class="g">Xray</span> client for macOS</h1>
+    <h1 data-ru>Нативный <span class="g">Xray</span>-клиент для macOS</h1>
+    <p class="sub" data-en>VLESS · VMess · Trojan · Shadowsocks · Hysteria2 · TUIC · WireGuard · AnyTLS · Reality. System-proxy and full-device TUN tunneling, subscription profiles, and professional domain/IP routing — in a clean menu-bar app.</p>
+    <p class="sub" data-ru>VLESS · VMess · Trojan · Shadowsocks · Hysteria2 · TUIC · WireGuard · AnyTLS · Reality. Системный прокси и полный TUN-туннель, профили подписок и профессиональная маршрутизация по доменам/IP — в аккуратном приложении в меню-баре.</p>
+    <div class="cta">
+      <a class="btn btn-p" href="https://github.com/faustyu1/veil/releases/latest/download/Veil.app.zip" data-en>Download for macOS</a>
+      <a class="btn btn-p" href="https://github.com/faustyu1/veil/releases/latest/download/Veil.app.zip" data-ru>Скачать для macOS</a>
+      <a class="btn btn-s" href="https://github.com/faustyu1/veil" data-en>View on GitHub</a>
+      <a class="btn btn-s" href="https://github.com/faustyu1/veil" data-ru>Открыть на GitHub</a>
+    </div>
+    <p class="meta" data-en>Free & open source · macOS 14+ · Apple Silicon & Intel</p>
+    <p class="meta" data-ru>Бесплатно и с открытым кодом · macOS 14+ · Apple Silicon и Intel</p>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <h2 data-en>Everything you need</h2><h2 data-ru>Всё, что нужно</h2>
+    <p class="lead" data-en>Built on Xray-core, designed for everyday use.</p>
+    <p class="lead" data-ru>На базе Xray-core, удобно для ежедневного использования.</p>
+    <div class="grid">
+      <div class="card"><div class="ic">🔐</div>
+        <h3 data-en>Modern protocols</h3><h3 data-ru>Современные протоколы</h3>
+        <p data-en>VLESS, VMess, Trojan, Shadowsocks with Reality & TLS over tcp/ws/grpc/http/xhttp (incl. xtls-rprx-vision & post-quantum), plus Hysteria2, TUIC, WireGuard & AnyTLS via a bundled sing-box core.</p>
+        <p data-ru>VLESS, VMess, Trojan, Shadowsocks с Reality и TLS поверх tcp/ws/grpc/http/xhttp (включая xtls-rprx-vision и постквантовое шифрование), а также Hysteria2, TUIC, WireGuard и AnyTLS через встроенное ядро sing-box.</p>
+      </div>
+      <div class="card"><div class="ic">🌐</div>
+        <h3 data-en>Two tunnel modes</h3><h3 data-ru>Два режима туннеля</h3>
+        <p data-en>System proxy for browsers, or full-device TUN that routes every app — Telegram, terminal, games, UDP.</p>
+        <p data-ru>Системный прокси для браузеров или полный TUN, маршрутизирующий все приложения — Telegram, терминал, игры, UDP.</p>
+      </div>
+      <div class="card"><div class="ic">📡</div>
+        <h3 data-en>Subscriptions</h3><h3 data-ru>Подписки</h3>
+        <p data-en>Import subscription URLs as profile groups. Reads traffic, expiry and description from standard headers; auto-updates.</p>
+        <p data-ru>Импорт подписок как групп профилей. Читает трафик, срок и описание из заголовков; автообновление.</p>
+      </div>
+      <div class="card"><div class="ic">🧭</div>
+        <h3 data-en>Professional routing</h3><h3 data-ru>Профессиональная маршрутизация</h3>
+        <p data-en>Presets and a full rule editor with geosite/geoip databases downloaded from GitHub. v2rayN-style control.</p>
+        <p data-ru>Пресеты и полный редактор правил с базами geosite/geoip, загружаемыми с GitHub. Управление в стиле v2rayN.</p>
+      </div>
+      <div class="card"><div class="ic">⚡</div>
+        <h3 data-en>Instant switching</h3><h3 data-ru>Мгновенное переключение</h3>
+        <p data-en>Switching servers keeps the transport up and re-pins the route — sub-second, with no password prompt.</p>
+        <p data-ru>При смене сервера транспорт не пересоздаётся — переключение за доли секунды, без запроса пароля.</p>
+      </div>
+      <div class="card"><div class="ic">📊</div>
+        <h3 data-en>Latency testing</h3><h3 data-ru>Тест задержки</h3>
+        <p data-en>TCP-connect ping per server or group, with host-route bypass while TUN is active. Sort by ping, filter alive.</p>
+        <p data-ru>TCP-пинг по серверу или группе, с обходом маршрута при активном TUN. Сортировка по пингу, фильтр живых.</p>
+      </div>
+      <div class="card"><div class="ic">📱</div>
+        <h3 data-en>QR import & export</h3><h3 data-ru>QR-импорт и экспорт</h3>
+        <p data-en>Show any server as a QR code, save it as PNG, or add servers by scanning a QR with the camera or an image file.</p>
+        <p data-ru>Покажите любой сервер как QR-код, сохраните в PNG или добавьте серверы, отсканировав QR камерой либо из изображения.</p>
+      </div>
+      <div class="card"><div class="ic">🛡️</div>
+        <h3 data-en>Ad & tracker blocking</h3><h3 data-ru>Блокировка рекламы</h3>
+        <p data-en>One toggle drops ads and trackers via geosite:category-ads-all at the routing layer.</p>
+        <p data-ru>Один тумблер отбрасывает рекламу и трекеры через geosite:category-ads-all на уровне маршрутизации.</p>
+      </div>
+      <div class="card"><div class="ic">🌍</div>
+        <h3 data-en>12 languages</h3><h3 data-ru>12 языков</h3>
+        <p data-en>English, Русский, 中文, Español, हिन्दी, العربية, Français, Português, Deutsch, 日本語, Indonesia, Türkçe.</p>
+        <p data-ru>English, Русский, 中文, Español, हिन्दी, العربية, Français, Português, Deutsch, 日本語, Indonesia, Türkçe.</p>
+      </div>
+      <div class="card"><div class="ic">🍃</div>
+        <h3 data-en>Menu-bar control</h3><h3 data-ru>Управление из меню-бара</h3>
+        <p data-en>Connect, disconnect and quick-switch servers without opening the window. Close-to-tray and auto-connect.</p>
+        <p data-ru>Подключение, отключение и быстрая смена серверов без окна. Сворачивание в трей и автоподключение.</p>
+      </div>
+      <div class="card"><div class="ic">♻️</div>
+        <h3 data-en>Safe by default</h3><h3 data-ru>Безопасно по умолчанию</h3>
+        <p data-en>Restores routes and DNS on quit, and recovers a crashed session on launch — you're never left offline.</p>
+        <p data-ru>Восстанавливает маршруты и DNS при выходе и чинит упавшую сессию при запуске — вы не останетесь без сети.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <h2 data-en>Pick how traffic flows</h2><h2 data-ru>Выберите, как идёт трафик</h2>
+    <div class="modes">
+      <div class="mode">
+        <span class="tag" data-en>No password</span><span class="tag" data-ru>Без пароля</span>
+        <h3 data-en>System Proxy</h3><h3 data-ru>Системный прокси</h3>
+        <p data-en style="color:var(--mut);font-size:14px">Sets the macOS SOCKS/HTTP proxy on the active network service.</p>
+        <p data-ru style="color:var(--mut);font-size:14px">Ставит системный SOCKS/HTTP-прокси на активном сетевом сервисе.</p>
+        <ul>
+          <li data-en>No admin rights required</li><li data-ru>Не требует прав администратора</li>
+          <li data-en>Great for browsers & proxy-aware apps</li><li data-ru>Идеально для браузеров и proxy-приложений</li>
+          <li data-en>Instant on / off</li><li data-ru>Мгновенное вкл/выкл</li>
+        </ul>
+      </div>
+      <div class="mode">
+        <span class="tag" data-en>All apps</span><span class="tag" data-ru>Все приложения</span>
+        <h3 data-en>TUN</h3><h3 data-ru>TUN</h3>
+        <p data-en style="color:var(--mut);font-size:14px">Full-device tunnel via tun2socks with split-default routing.</p>
+        <p data-ru style="color:var(--mut);font-size:14px">Полный туннель через tun2socks со split-default маршрутами.</p>
+        <ul>
+          <li data-en>Routes everything: Telegram, terminal, games, UDP</li><li data-ru>Маршрутизирует всё: Telegram, терминал, игры, UDP</li>
+          <li data-en>One-time helper install — then no more prompts</li><li data-ru>Хелпер ставится один раз — дальше без запросов</li>
+          <li data-en>Server IP pinned to the physical gateway</li><li data-ru>IP сервера закреплён за физическим шлюзом</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="routing">
+  <div class="wrap">
+    <h2 data-en>Routing like the pros</h2><h2 data-ru>Маршрутизация как у профи</h2>
+    <p class="lead" data-en>Presets, downloadable geo databases, and a full ordered rule editor.</p>
+    <p class="lead" data-ru>Пресеты, загружаемые geo-базы и полный редактор правил с порядком.</p>
+    <div class="route-grid">
+      <ul class="route-list">
+        <li data-en><b>Presets:</b> Global, Bypass LAN, Bypass China, Bypass Russia, Custom.</li>
+        <li data-ru><b>Пресеты:</b> Global, Bypass LAN, Bypass China, Bypass Russia, Custom.</li>
+        <li data-en><b>Geo databases</b> from Loyalsoldier, runetfreedom, v2fly, or your own URL — downloaded straight from GitHub.</li>
+        <li data-ru><b>Geo-базы</b> от Loyalsoldier, runetfreedom, v2fly или свой URL — загрузка прямо с GitHub.</li>
+        <li data-en><b>Per-rule outbound</b> — proxy, direct or block — with domain, IP/CIDR, geosite, geoip and port matchers.</li>
+        <li data-ru><b>Направление на правило</b> — proxy, direct или block — с матчерами по домену, IP/CIDR, geosite, geoip и порту.</li>
+        <li data-en><b>Reorderable</b> — first match wins, just like v2rayN / Nekoray.</li>
+        <li data-ru><b>С порядком</b> — срабатывает первое совпадение, как в v2rayN / Nekoray.</li>
+      </ul>
+      <div class="codebox">
+<span class="c"># Bypass Russia preset</span><br>
+<span class="k">direct</span> ← geosite:category-gov-ru<br>
+<span class="k">direct</span> ← geosite:category-ru<br>
+<span class="k">direct</span> ← geoip:ru, geoip:private<br>
+<span class="k">block</span>&nbsp; ← geosite:category-ads-all<br>
+<span class="k">proxy</span>&nbsp; ← <span class="s">everything else</span><br>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <h2 data-en>Up and running in a minute</h2><h2 data-ru>Запуск за минуту</h2>
+    <div class="steps">
+      <div class="step"><div class="n">01</div>
+        <h3 data-en>Add servers</h3><h3 data-ru>Добавьте серверы</h3>
+        <p data-en>Import a subscription URL or paste vless:// / vmess:// / trojan:// / ss:// / hysteria2:// / tuic:// / wireguard:// links — or scan a QR code.</p>
+        <p data-ru>Импортируйте подписку или вставьте ссылки vless:// / vmess:// / trojan:// / ss:// / hysteria2:// / tuic:// / wireguard:// — или отсканируйте QR-код.</p>
+      </div>
+      <div class="step"><div class="n">02</div>
+        <h3 data-en>Pick a mode</h3><h3 data-ru>Выберите режим</h3>
+        <p data-en>Proxy for browsers, or TUN for the whole device. TUN installs its helper once.</p>
+        <p data-ru>Proxy для браузеров или TUN для всего устройства. TUN ставит хелпер один раз.</p>
+      </div>
+      <div class="step"><div class="n">03</div>
+        <h3 data-en>Connect</h3><h3 data-ru>Подключитесь</h3>
+        <p data-en>Click a server. Switch any time from the window or the menu bar — instantly.</p>
+        <p data-ru>Нажмите сервер. Переключайтесь из окна или меню-бара в любой момент — мгновенно.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="download" class="dl">
+  <div class="wrap">
+    <h2 data-en>Get Veil</h2><h2 data-ru>Скачать Veil</h2>
+    <div class="box">
+      <p class="lead" style="margin-top:0" data-en>Download the latest release, unzip, and move Veil.app to Applications.</p>
+      <p class="lead" style="margin-top:0" data-ru>Скачайте последний релиз, распакуйте и переместите Veil.app в «Программы».</p>
+      <div class="cta">
+        <a class="btn btn-p" href="https://github.com/faustyu1/veil/releases/latest/download/Veil.app.zip" data-en>Download Veil.app.zip</a>
+        <a class="btn btn-p" href="https://github.com/faustyu1/veil/releases/latest/download/Veil.app.zip" data-ru>Скачать Veil.app.zip</a>
+        <a class="btn btn-s" href="https://github.com/faustyu1/veil#build-from-source" data-en>Build from source</a>
+        <a class="btn btn-s" href="https://github.com/faustyu1/veil#build-from-source" data-ru>Собрать из исходников</a>
+      </div>
+      <div class="pills">
+        <span class="pill" data-en>macOS 14+</span><span class="pill" data-ru>macOS 14+</span>
+        <span class="pill">Apple Silicon · Intel</span>
+        <span class="pill" data-en>Ad-hoc signed</span><span class="pill" data-ru>Ad-hoc подпись</span>
+        <span class="pill">MIT</span>
+      </div>
+      <p class="meta" style="margin-top:18px" data-en>First launch: right-click → Open, or allow under System Settings → Privacy &amp; Security.</p>
+      <p class="meta" style="margin-top:18px" data-ru>Первый запуск: правый клик → «Открыть», либо разрешите в «Системные настройки → Конфиденциальность и безопасность».</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Veil · <a href="https://github.com/faustyu1/veil">GitHub</a> · <a href="https://github.com/faustyu1/veil/releases">Releases</a> · MIT License</p>
+    <p style="margin-top:8px" data-en>Powered by <a href="https://github.com/XTLS/Xray-core">Xray-core</a>, <a href="https://github.com/SagerNet/sing-box">sing-box</a> and <a href="https://github.com/xjasonlyu/tun2socks">tun2socks</a>.</p>
+    <p style="margin-top:8px" data-ru>На базе <a href="https://github.com/XTLS/Xray-core">Xray-core</a>, <a href="https://github.com/SagerNet/sing-box">sing-box</a> и <a href="https://github.com/xjasonlyu/tun2socks">tun2socks</a>.</p>
+    <p class="disc" data-en>Veil is a client for proxy protocols intended for privacy, development and lawful circumvention of censorship. You are responsible for complying with the laws and terms of service that apply to you.</p>
+    <p class="disc" data-ru>Veil — клиент для прокси-протоколов, предназначенный для приватности, разработки и законного обхода цензуры. Вы несёте ответственность за соблюдение применимых к вам законов и условий использования.</p>
+  </div>
+</footer>
+
+<script>
+  function setLang(l){
+    l = (l === 'ru') ? 'ru' : 'en';
+    document.documentElement.lang = l;
+    document.body.classList.remove('lang-en','lang-ru');
+    document.body.classList.add('lang-' + l);
+    document.getElementById('b-en').classList.toggle('on', l==='en');
+    document.getElementById('b-ru').classList.toggle('on', l==='ru');
+    try{ localStorage.setItem('veil-lang', l); }catch(e){}
+  }
+  var saved = 'en';
+  try{ saved = localStorage.getItem('veil-lang') || (navigator.language||'').slice(0,2); }catch(e){}
+  setLang(saved === 'ru' ? 'ru' : 'en');
+</script>
+</body>
+</html>
