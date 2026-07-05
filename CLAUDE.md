@@ -89,3 +89,7 @@ Tests live in `Tests/XrayClientTests/ParserTests.swift` and cover:
 ## Design
 
 This is supposed to be a high-quality, native MacOS client app. Its intended user base is very small, just the author and anyone who stumbles upon it. Optimize design for minimalism, cleanliness, and a native feeling design language. Visual references are Reeder (https://reederapp.com/) and Xcode. If possible, use default and provided Swift elements and design.
+
+If you are given reference images, do not attempt to be pixel-perfect in matching. Instead, go off of the general structure and impression. Always use Apple Liquid Glass native elements when possible. Use natively supported SF Symbols and always stick to a default, Swift-supported look. The number one goal is to create a native-looking, polished app, as if Apple itself made it. For example, if there is a on/off toggle in the reference image, and you cannot create the exact shape or length with default liquid glass SwiftUI elements, do not complicate things. Simply use the native liquid glass toggle. Always simplify for UI, never complicate.
+
+If it is a strictly design-focused task, do not attempt to write new technical features in order to match what is on the design. If so, prompt for further inquiry or simply skip it. For example, if there is a text in the reference image that shows the current data transfer size but there is no preexisting code that can easily display that, simply skip it for now unless the user specifically asked for a new technical feature.
