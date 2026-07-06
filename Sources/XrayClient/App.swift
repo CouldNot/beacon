@@ -57,6 +57,9 @@ struct XrayClientApp: App {
                 }
         }
         .windowResizability(.contentSize)
+        // No titlebar chrome at all: the traffic lights float directly over the
+        // window's single glass surface (see WindowConfigurator).
+        .windowStyle(.hiddenTitleBar)
 
         // Menu bar control: switch servers / disconnect without opening the window.
         MenuBarExtra {

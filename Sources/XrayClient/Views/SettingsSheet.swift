@@ -1,29 +1,19 @@
 import SwiftUI
 
 /// Basic app settings: tunnel mode, appearance, auto-update, close-to-tray, ports.
-struct SettingsSheet: View {
+/// Hosted as the Settings destination in the sidebar. (Restyled into grouped
+/// glass sections in a later step.)
+struct SettingsPane: View {
     @Environment(ServerStore.self) private var store
     @Environment(ConnectionManager.self) private var connection
     @Environment(Loc.self) private var loc
-    @Environment(\.dismiss) private var dismiss
 
     @State private var helperInstalled = TunManager.isHelperInstalled
     @State private var showRouting = false
 
     var body: some View {
         @Bindable var store = store
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text(loc("Settings")).font(.title2).bold()
-                Spacer()
-                Button(loc("Done")) { dismiss() }
-                    .keyboardShortcut(.defaultAction)
-                    .glassProminentButton()
-            }
-            .padding()
-            Divider()
-
-            Form {
+        Form {
                 Section(loc("Tunnel")) {
                     Picker(loc("Mode"), selection: $store.settings.mode) {
                         ForEach(TunnelMode.allCases) { m in Text(m.title).tag(m) }
@@ -142,10 +132,9 @@ struct SettingsSheet: View {
                             store.save()
                         }
                 }
-            }
-            .formStyle(.grouped)
         }
-        .frame(width: 460, height: 560)
+        .formStyle(.grouped)
+        .navigationTitle(loc("Settings"))
         .sheet(isPresented: $showRouting) { RoutingSheet() }
         .onChange(of: store.settings.socksPort) { _, p in
             connection.ports.socks = p; store.save()

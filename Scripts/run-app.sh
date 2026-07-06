@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT}"
 
 CONFIG="${1:-release}"
-BUILD_NAME="XrayClient"      # SPM product (binary) name
+BUILD_NAME="Beacon"          # SPM product (binary) name
 APP_NAME="Beacon"             # user-facing app + bundle name
 APP_DIR="${ROOT}/${APP_NAME}.app"
 

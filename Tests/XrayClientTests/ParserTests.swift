@@ -1,5 +1,5 @@
 import XCTest
-@testable import XrayClient
+@testable import Beacon
 
 final class LinkParserTests: XCTestCase {
 

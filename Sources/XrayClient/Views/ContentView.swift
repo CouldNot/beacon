@@ -1,6 +1,147 @@
 import SwiftUI
 
+// MARK: - Window shell
+
+/// Top-level window shell: a native split view with a translucent sidebar
+/// (Servers / Log / Settings) and the selected pane in the detail column.
+/// Traffic-light buttons float over the sidebar and the sidebar toggle lives in
+/// the toolbar, matching the redesign's macOS-native structure.
 struct ContentView: View {
+    @Environment(ServerStore.self) private var store
+    @AppStorage("sidebarSelection") private var selectionRaw = SidebarItem.servers.rawValue
+
+    private var selection: Binding<SidebarItem> {
+        Binding(
+            get: { SidebarItem(rawValue: selectionRaw) ?? .servers },
+            set: { selectionRaw = $0.rawValue }
+        )
+    }
+
+    var body: some View {
+        // Custom two-column layout instead of NavigationSplitView: on macOS 26
+        // the system split view floats the sidebar as its own rounded glass
+        // slab, which breaks the seamless Reeder-style look. Here ONE flat
+        // vibrancy surface spans the entire window and the columns are just
+        // transparent content over it, separated by a plain hairline.
+        HStack(spacing: 0) {
+            Sidebar(selection: selection, serverCount: store.allServers.count)
+                .frame(width: 220)
+
+            // Detail column intentionally empty while panes are rebuilt on the
+            // new shell (tasks 3-5).
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(VisualEffectBackground(material: .sidebar).ignoresSafeArea())
+        .background(WindowConfigurator())
+        .overlay(alignment: .leading) {
+            // Hairline drawn as an overlay so it renders above the vibrancy
+            // material and extends into the title bar via ignoresSafeArea.
+            HStack(spacing: 0) {
+                Color.clear.frame(width: 220)
+                Color(nsColor: .separatorColor).frame(width: 1)
+            }
+            .ignoresSafeArea()
+        }
+    }
+}
+
+/// The three destinations in the sidebar.
+enum SidebarItem: String, CaseIterable, Identifiable {
+    case servers, log, settings
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .servers:  return "Servers"
+        case .log:      return "Log"
+        case .settings: return "Settings"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .servers:  return "globe"
+        case .log:      return "waveform.path"
+        case .settings: return "gearshape"
+        }
+    }
+}
+
+/// Flat sidebar column drawn directly on the shared window material - no List,
+/// no separate background, so it is indistinguishable from the detail side.
+/// Rows are simple buttons with a rounded selection highlight.
+struct Sidebar: View {
+    @Environment(Loc.self) private var loc
+    @Binding var selection: SidebarItem
+    let serverCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(SidebarItem.allCases) { item in
+                SidebarRow(
+                    title: loc(item.title),
+                    systemImage: item.systemImage,
+                    badge: item == .servers && serverCount > 0 ? "\(serverCount)" : nil,
+                    isSelected: selection == item
+                ) {
+                    selection = item
+                }
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+        // Clear the traffic-light buttons at the top of the window.
+        .padding(.top, 52)
+    }
+}
+
+private struct SidebarRow: View {
+    let title: String
+    let systemImage: String
+    let badge: String?
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 14))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .frame(width: 20)
+                Text(title)
+                    .font(.system(size: 13, weight: isSelected ? .medium : .regular))
+                Spacer()
+                if let badge {
+                    Text(badge)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .contentShape(RoundedRectangle(cornerRadius: DS.Radius.control, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: DS.Radius.control, style: .continuous)
+                .fill(isSelected ? AnyShapeStyle(.quaternary)
+                      : isHovering ? AnyShapeStyle(.quaternary.opacity(0.5))
+                      : AnyShapeStyle(.clear))
+        )
+        .onHover { isHovering = $0 }
+    }
+}
+
+// MARK: - Servers pane
+
+/// The Servers destination: status header, search/filter bar, the collapsible
+/// server list, and the action footer. (Restyled to the mockup in a later step.)
+struct ServersPane: View {
     @Environment(ServerStore.self) private var store
     @Environment(ConnectionManager.self) private var connection
     @Environment(PingTester.self) private var pinger
@@ -8,8 +149,6 @@ struct ContentView: View {
 
     @State private var showAddSheet = false
     @State private var showSubSheet = false
-    @State private var showSettings = false
-    @State private var showLog = false
     @State private var isRefreshing = false
     @State private var searchText = ""
     @State private var aliveOnly = false
@@ -94,16 +233,12 @@ struct ContentView: View {
             Divider()
             searchBar
             serverList
-            if showLog {
-                LogPane(text: connection.logs, onClear: { connection.clearLogs() })
-                    .frame(minHeight: 80, maxHeight: 168)
-            }
             Divider()
             footer
         }
+        .navigationTitle(loc("Servers"))
         .sheet(isPresented: $showAddSheet) { AddServerSheet() }
         .sheet(isPresented: $showSubSheet) { SubscriptionSheet() }
-        .sheet(isPresented: $showSettings) { SettingsSheet() }
     }
 
     // MARK: - Search & filter
@@ -293,13 +428,6 @@ struct ContentView: View {
                 }
 
                 Spacer()
-
-                Toggle(isOn: $showLog) { Label(loc("Log"), systemImage: "text.alignleft") }
-                    .glassToggle()
-                Button { showSettings = true } label: {
-                    Label(loc("Settings"), systemImage: "gearshape")
-                }
-                .glassButton()
             }
             .labelStyle(.titleAndIcon)
             .padding(.horizontal, 12).padding(.vertical, 8)
@@ -371,7 +499,7 @@ struct SubscriptionGroupView: View {
 
     /// Servers after applying search text, alive filter, and ping sort.
     private var visibleServers: [ProxyConfig] {
-        ContentView.filterServers(subscription.servers, search: searchText,
+        ServersPane.filterServers(subscription.servers, search: searchText,
                                   aliveOnly: aliveOnly, sortByPing: sortByPing,
                                   pinger: pinger)
     }
@@ -672,6 +800,20 @@ struct LogPane: View {
                 .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
         )
         .padding(.horizontal, 12).padding(.vertical, 8)
+    }
+}
+
+// MARK: - Log pane (sidebar destination)
+
+/// Full-height Log destination hosting the existing log view. (Restyled with
+/// level tags / filter in a later step.)
+struct LogDetailPane: View {
+    @Environment(ConnectionManager.self) private var connection
+    @Environment(Loc.self) private var loc
+
+    var body: some View {
+        LogPane(text: connection.logs, onClear: { connection.clearLogs() })
+            .navigationTitle(loc("Log"))
     }
 }
 
