@@ -23,22 +23,29 @@ struct ContentView: View {
         // slab, which breaks the seamless Reeder-style look. Here ONE flat
         // vibrancy surface spans the entire window and the columns are just
         // transparent content over it, separated by a plain hairline.
-        HStack(spacing: 0) {
-            Sidebar(selection: selection, serverCount: store.allServers.count)
-                .frame(width: 220)
+        // ZStack so the material fills the whole window while the content
+        // column is independently padded away from the window edges.
+        ZStack(alignment: .topLeading) {
+            VisualEffectBackground(material: .sidebar)
+                .ignoresSafeArea()
 
-            // Detail column intentionally empty while panes are rebuilt on the
-            // new shell (tasks 3-5).
-            Color.clear
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            HStack(spacing: 0) {
+                Sidebar(selection: selection, serverCount: store.allServers.count)
+                    .frame(width: 220)
+
+                // Detail column intentionally empty while panes are rebuilt on
+                // the new shell (tasks 3-5).
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .padding(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20))
         }
-        .background(VisualEffectBackground(material: .sidebar).ignoresSafeArea())
         .background(WindowConfigurator())
         .overlay(alignment: .leading) {
-            // Hairline drawn as an overlay so it renders above the vibrancy
-            // material and extends into the title bar via ignoresSafeArea.
+            // Hairline width = sidebar (220) + leading inset (20) so it aligns
+            // with the sidebar's right edge in window-space.
             HStack(spacing: 0) {
-                Color.clear.frame(width: 220)
+                Color.clear.frame(width: 240)
                 Color(nsColor: .separatorColor).frame(width: 1)
             }
             .ignoresSafeArea()

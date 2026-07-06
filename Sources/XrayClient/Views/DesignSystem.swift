@@ -180,12 +180,30 @@ struct VisualEffectBackground: NSViewRepresentable {
 /// full-size titlebar so the single material runs to the very top edge with
 /// only the traffic lights floating over it (Reeder-style).
 struct WindowConfigurator: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView { ConfiguringView() }
+    /// Extra inset (beyond AppKit's default corner offset) applied to the
+    /// traffic-light buttons so they sit further from the window's top-left
+    /// corner, matching the content's inset from the other edges.
+    var trafficLightInset = CGSize(width: 14, height: 14)
+
+    func makeNSView(context: Context) -> NSView {
+        let view = ConfiguringView()
+        view.inset = trafficLightInset
+        return view
+    }
     func updateNSView(_ nsView: NSView, context: Context) {}
 
     /// Applies the window styling whenever the view lands in a window, so the
     /// settings survive window recreation (e.g. reopening from the menu bar).
     private final class ConfiguringView: NSView {
+        var inset = CGSize(width: 14, height: 14)
+
+        private let buttonTypes: [NSWindow.ButtonType] =
+            [.closeButton, .miniaturizeButton, .zoomButton]
+        /// AppKit's default button origins, captured once before we move them,
+        /// so repeated repositioning is always computed from the base position
+        /// (never compounds) and survives AppKit's own relayout on resize.
+        private var baseOrigins: [NSWindow.ButtonType: NSPoint] = [:]
+
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             guard let window else { return }
@@ -197,6 +215,43 @@ struct WindowConfigurator: NSViewRepresentable {
             // Remove any residual toolbar so no opaque strip is drawn behind
             // the traffic lights.
             window.toolbar = nil
+
+            captureBaseOrigins()
+            repositionTrafficLights()
+
+            // AppKit re-lays the traffic lights out on resize / key changes, so
+            // reapply the inset afterwards to keep them put.
+            let center = NotificationCenter.default
+            for name: NSNotification.Name in [
+                NSWindow.didResizeNotification,
+                NSWindow.didBecomeKeyNotification,
+                NSWindow.didExitFullScreenNotification,
+            ] {
+                center.addObserver(self, selector: #selector(repositionTrafficLights),
+                                   name: name, object: window)
+            }
+        }
+
+        private func captureBaseOrigins() {
+            guard let window, baseOrigins.isEmpty else { return }
+            for type in buttonTypes {
+                if let button = window.standardWindowButton(type) {
+                    baseOrigins[type] = button.frame.origin
+                }
+            }
+        }
+
+        /// Offsets each traffic-light button right and down from its captured
+        /// base position. The titlebar view is not flipped (origin bottom-left),
+        /// so moving visually down means decreasing y.
+        @objc private func repositionTrafficLights() {
+            guard let window else { return }
+            for type in buttonTypes {
+                guard let button = window.standardWindowButton(type),
+                      let base = baseOrigins[type] else { continue }
+                button.setFrameOrigin(NSPoint(x: base.x + inset.width,
+                                              y: base.y - inset.height))
+            }
         }
     }
 }
