@@ -10,6 +10,9 @@ struct ContentView: View {
     @Environment(ServerStore.self) private var store
     @AppStorage("sidebarSelection") private var selectionRaw = SidebarItem.servers.rawValue
 
+    /// Width of the sidebar column; the hairline separator sits at its edge.
+    static let sidebarWidth: CGFloat = 220
+
     private var selection: Binding<SidebarItem> {
         Binding(
             get: { SidebarItem(rawValue: selectionRaw) ?? .servers },
@@ -23,29 +26,30 @@ struct ContentView: View {
         // slab, which breaks the seamless Reeder-style look. Here ONE flat
         // vibrancy surface spans the entire window and the columns are just
         // transparent content over it, separated by a plain hairline.
-        // ZStack so the material fills the whole window while the content
-        // column is independently padded away from the window edges.
         ZStack(alignment: .topLeading) {
             VisualEffectBackground(material: .sidebar)
                 .ignoresSafeArea()
 
             HStack(spacing: 0) {
-                Sidebar(selection: selection, serverCount: store.allServers.count)
-                    .frame(width: 220)
+                Sidebar(selection: selection)
+                    .frame(width: Self.sidebarWidth)
 
                 // Detail column intentionally empty while panes are rebuilt on
                 // the new shell (tasks 3-5).
                 Color.clear
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .padding(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20))
+            // Span the transparent titlebar too: the sidebar lays out its own
+            // top strip so the add button can sit level with the traffic
+            // lights, Reeder-style.
+            .ignoresSafeArea()
         }
         .background(WindowConfigurator())
         .overlay(alignment: .leading) {
-            // Hairline width = sidebar (220) + leading inset (20) so it aligns
-            // with the sidebar's right edge in window-space.
+            // Hairline sits at the sidebar's right edge (sidebar is flush to
+            // the window's left, so its width is the full sidebarWidth).
             HStack(spacing: 0) {
-                Color.clear.frame(width: 240)
+                Color.clear.frame(width: Self.sidebarWidth)
                 Color(nsColor: .separatorColor).frame(width: 1)
             }
             .ignoresSafeArea()
@@ -75,72 +79,133 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     }
 }
 
-/// Flat sidebar column drawn directly on the shared window material - no List,
-/// no separate background, so it is indistinguishable from the detail side.
-/// Rows are simple buttons with a rounded selection highlight.
+/// Reeder-style sidebar drawn directly on the shared window material: a
+/// prominent two-line Servers item up top (bold title, small subtitle, tinted
+/// icon) followed by plain rows. The selected row sits on a Liquid Glass slab;
+/// hover is a faint quaternary wash. The column lays out its own titlebar
+/// strip so the circular add button lines up with the traffic lights.
 struct Sidebar: View {
     @Environment(Loc.self) private var loc
     @Binding var selection: SidebarItem
-    let serverCount: Int
+
+    @State private var showAddSheet = false
+
+    /// Height of the transparent titlebar region (traffic lights + add button).
+    private let titleBarHeight: CGFloat = 52
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            ForEach(SidebarItem.allCases) { item in
-                SidebarRow(
-                    title: loc(item.title),
-                    systemImage: item.systemImage,
-                    badge: item == .servers && serverCount > 0 ? "\(serverCount)" : nil,
-                    isSelected: selection == item
-                ) {
-                    selection = item
+        VStack(spacing: 0) {
+            titleBar
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    SidebarRow(
+                        item: .servers,
+                        title: loc("Servers"),
+                        subtitle: loc("All servers"),
+                        isSelected: selection == .servers
+                    ) { selection = .servers }
+
+                    SidebarRow(
+                        item: .log,
+                        title: loc("Log"),
+                        isSelected: selection == .log
+                    ) { selection = .log }
+
+                    SidebarRow(
+                        item: .settings,
+                        title: loc("Settings"),
+                        isSelected: selection == .settings
+                    ) { selection = .settings }
                 }
+                .padding(.top, 24)
+                .padding(.leading, 14)
+                .padding(.trailing, 10)
             }
-            Spacer()
         }
-        .padding(.horizontal, 10)
-        // Clear the traffic-light buttons at the top of the window.
-        .padding(.top, 52)
+        .sheet(isPresented: $showAddSheet) { AddServerSheet() }
+    }
+
+    /// Strip occupying the transparent titlebar. AppKit draws the traffic
+    /// lights over its leading edge; the add button mirrors them trailing.
+    private var titleBar: some View {
+        HStack {
+            Spacer()
+            Button { showAddSheet = true } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .medium))
+                    .frame(width: 26, height: 26)
+                    .contentShape(Circle())
+            }
+            .glassCircleButton()
+            .help(loc("Add Link"))
+        }
+        .padding(.trailing, 10)
+        .frame(height: titleBarHeight)
     }
 }
 
+/// One sidebar destination row. With a subtitle it renders as the prominent
+/// two-line item (large bold title, accent icon); without one, as a plain row.
 private struct SidebarRow: View {
+    let item: SidebarItem
     let title: String
-    let systemImage: String
-    let badge: String?
+    var subtitle: String? = nil
     let isSelected: Bool
     let action: () -> Void
 
     @State private var isHovering = false
 
+    private var isProminent: Bool { subtitle != nil }
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+    }
+
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 14))
-                    .foregroundStyle(isSelected ? .primary : .secondary)
-                    .frame(width: 20)
-                Text(title)
-                    .font(.system(size: 13, weight: isSelected ? .medium : .regular))
-                Spacer()
-                if let badge {
-                    Text(badge)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+            HStack(spacing: 10) {
+                Image(systemName: item.systemImage)
+                    .font(.system(size: isProminent ? 18 : 15, weight: .medium))
+                    .foregroundStyle(isProminent
+                                     ? AnyShapeStyle(DS.accent)
+                                     : AnyShapeStyle(.secondary))
+                    .frame(width: 24)
+                if let subtitle {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(title)
+                            .font(.system(size: 17, weight: .bold))
+                        Text(subtitle)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text(title)
+                        .font(.system(size: 15))
                 }
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 6)
-            .contentShape(RoundedRectangle(cornerRadius: DS.Radius.control, style: .continuous))
+            .padding(.horizontal, 12)
+            .padding(.vertical, isProminent ? 8 : 9)
+            .contentShape(shape)
         }
         .buttonStyle(.plain)
-        .background(
-            RoundedRectangle(cornerRadius: DS.Radius.control, style: .continuous)
-                .fill(isSelected ? AnyShapeStyle(.quaternary)
-                      : isHovering ? AnyShapeStyle(.quaternary.opacity(0.5))
-                      : AnyShapeStyle(.clear))
-        )
+        .background { rowBackground }
         .onHover { isHovering = $0 }
+    }
+
+    /// Selected rows get the Liquid Glass slab (quaternary fill pre-macOS 26);
+    /// hovered rows a faint wash so the pointer state reads without weight.
+    @ViewBuilder
+    private var rowBackground: some View {
+        if isSelected {
+            if #available(macOS 26.0, *) {
+                Color.clear.glassEffect(.regular, in: shape)
+            } else {
+                shape.fill(.quaternary)
+            }
+        } else if isHovering {
+            shape.fill(.quaternary.opacity(0.5))
+        }
     }
 }
 
@@ -869,6 +934,17 @@ extension View {
             self.buttonStyle(.glassProminent)
         } else {
             self.buttonStyle(.borderedProminent)
+        }
+    }
+
+    /// Circular Liquid Glass button (toolbar-style icon buttons, e.g. the
+    /// sidebar's add button), with a bordered-circle fallback.
+    @ViewBuilder
+    func glassCircleButton() -> some View {
+        if #available(macOS 26.0, *) {
+            self.buttonStyle(.glass).buttonBorderShape(.circle)
+        } else {
+            self.buttonStyle(.bordered).buttonBorderShape(.circle)
         }
     }
 

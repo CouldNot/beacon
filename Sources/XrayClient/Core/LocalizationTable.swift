@@ -79,6 +79,10 @@ extension Loc {
             "ru": "Тест пинга", "zh": "测试延迟", "es": "Probar ping", "hi": "पिंग जांचें",
             "ar": "اختبار البينغ", "fr": "Tester le ping", "pt": "Testar ping", "de": "Ping testen",
             "ja": "Ping測定", "id": "Uji ping", "tr": "Ping testi"],
+        "All servers": [
+            "ru": "Все серверы", "zh": "全部服务器", "es": "Todos los servidores", "hi": "सभी सर्वर",
+            "ar": "كل الخوادم", "fr": "Tous les serveurs", "pt": "Todos os servidores", "de": "Alle Server",
+            "ja": "すべてのサーバー", "id": "Semua server", "tr": "Tüm sunucular"],
         "Log": [
             "ru": "Лог", "zh": "日志", "es": "Registro", "hi": "लॉग",
             "ar": "السجل", "fr": "Journal", "pt": "Registro", "de": "Protokoll",
