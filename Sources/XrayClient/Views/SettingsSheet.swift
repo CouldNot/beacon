@@ -134,6 +134,10 @@ struct SettingsPane: View {
                 }
         }
         .formStyle(.grouped)
+        // Let the shared window material show through; the opaque grouped-form
+        // background would otherwise extend under the titlebar and paint over
+        // the floating header pill.
+        .scrollContentBackground(.hidden)
         .navigationTitle(loc("Settings"))
         .sheet(isPresented: $showRouting) { RoutingSheet() }
         .onChange(of: store.settings.socksPort) { _, p in
