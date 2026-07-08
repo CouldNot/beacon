@@ -482,6 +482,20 @@ extension View {
         }
     }
 
+    /// Large circular Liquid Glass surface (toolbar icon buttons that need to
+    /// read as prominent, e.g. the servers list's add/sort controls). Applies
+    /// the real interactive glass material directly rather than relying on
+    /// a button style, since `.buttonStyle(.glass)` doesn't render through
+    /// `Menu`'s bezel. Falls back to a quaternary-fill circle pre-macOS 26.
+    @ViewBuilder
+    func glassCircle() -> some View {
+        if #available(macOS 26.0, *) {
+            self.glassEffect(.clear.tint(.black.opacity(0.14)).interactive(), in: Circle())
+        } else {
+            self.background(Circle().fill(.quaternary.opacity(0.8)))
+        }
+    }
+
     /// Liquid Glass toggle (a button-style toggle that picks up the glass
     /// material when selected on macOS 26+), with a bordered-button fallback.
     @ViewBuilder

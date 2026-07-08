@@ -286,31 +286,30 @@ struct ServersPane: View {
             Divider()
             Toggle(loc("Reachable Only"), isOn: $aliveOnly)
         } label: {
-            HStack(spacing: 5) {
-                Image(systemName: "arrow.up.arrow.down")
-                    .font(.system(size: 10, weight: .semibold))
-                Text(loc(sortMode.title))
-                    .font(.system(size: 12, weight: .medium))
-            }
+            Image(systemName: "arrow.up.arrow.down")
+                .font(.system(size: 13, weight: .semibold))
         }
-        .menuStyle(.button)
-        .glassButton()
-        .menuIndicator(.visible)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .frame(width: 34, height: 34)
+        .glassCircle()
         .fixedSize()
+        .help(loc(sortMode.title))
     }
 
-    /// Circular + button: paste a link or add a subscription.
+    /// Native pull-down menu: paste a link or add a subscription.
     private var addMenu: some View {
         Menu {
             Button(loc("Paste Link…")) { showAddSheet = true }
             Button(loc("Add Subscription…")) { showSubSheet = true }
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
         }
-        .menuStyle(.button)
-        .glassCircleButton()
+        .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
+        .frame(width: 34, height: 34)
+        .glassCircle()
         .fixedSize()
         .help(loc("Add servers"))
     }

@@ -75,8 +75,6 @@ struct SettingsPane: View {
 
                 Section {
                     HStack {
-                        Image(systemName: helperInstalled ? "checkmark.shield.fill" : "shield.slash")
-                            .foregroundStyle(helperInstalled ? .green : .secondary)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(helperInstalled ? loc("Helper installed") : loc("Helper not installed"))
                             Text(helperInstalled
