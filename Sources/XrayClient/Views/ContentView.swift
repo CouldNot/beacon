@@ -8,10 +8,17 @@ import SwiftUI
 /// the toolbar, matching the redesign's macOS-native structure.
 struct ContentView: View {
     @Environment(ServerStore.self) private var store
+    @Environment(Loc.self) private var loc
     @AppStorage("sidebarSelection") private var selectionRaw = SidebarItem.servers.rawValue
+    @AppStorage("sidebarCollapsed") private var isSidebarCollapsed = false
 
     /// Width of the sidebar column; the hairline separator sits at its edge.
     static let sidebarWidth: CGFloat = 220
+
+    /// Current on-screen width of the sidebar column.
+    private var sidebarCurrentWidth: CGFloat {
+        isSidebarCollapsed ? 0 : Self.sidebarWidth
+    }
 
     private var selection: Binding<SidebarItem> {
         Binding(
@@ -30,14 +37,21 @@ struct ContentView: View {
             VisualEffectBackground(material: .sidebar)
                 .ignoresSafeArea()
 
+            // Subtle opaque wash so the desktop shows through a little less
+            // than the raw sidebar material allows.
+            Color(nsColor: .windowBackgroundColor)
+                .opacity(0.35)
+                .ignoresSafeArea()
+
             HStack(spacing: 0) {
+                // The sidebar keeps its intrinsic width and slides out to the
+                // left when collapsed; the outer frame clips it away.
                 Sidebar(selection: selection)
                     .frame(width: Self.sidebarWidth)
+                    .frame(width: sidebarCurrentWidth, alignment: .trailing)
+                    .clipped()
 
-                // Detail column intentionally empty while panes are rebuilt on
-                // the new shell (tasks 3-5).
-                Color.clear
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                detailColumn
             }
             // Span the transparent titlebar too: the sidebar lays out its own
             // top strip so the add button can sit level with the traffic
@@ -49,11 +63,68 @@ struct ContentView: View {
             // Hairline sits at the sidebar's right edge (sidebar is flush to
             // the window's left, so its width is the full sidebarWidth).
             HStack(spacing: 0) {
-                Color.clear.frame(width: Self.sidebarWidth)
+                Color.clear.frame(width: sidebarCurrentWidth)
                 Color(nsColor: .separatorColor).frame(width: 1)
             }
+            .opacity(isSidebarCollapsed ? 0 : 1)
             .ignoresSafeArea()
         }
+        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: isSidebarCollapsed)
+    }
+
+    /// Detail column: the floating pill header (sidebar toggle + page title)
+    /// on the titlebar strip, then the selected pane below.
+    private var detailColumn: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                DetailHeaderPill(
+                    title: loc(selection.wrappedValue.title),
+                    isSidebarCollapsed: $isSidebarCollapsed
+                )
+                Spacer()
+            }
+            // Clear the traffic lights when they float over this column.
+            .padding(.leading, isSidebarCollapsed ? 104 : 16)
+            .frame(height: 52)
+
+            // Pane content intentionally empty while panes are rebuilt on the
+            // new shell (tasks 3-5).
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+/// Floating Liquid Glass capsule at the top of the detail column: a sidebar
+/// toggle, a hairline divider, and the current page's name — Reeder-style.
+private struct DetailHeaderPill: View {
+    let title: String
+    @Binding var isSidebarCollapsed: Bool
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Button {
+                isSidebarCollapsed.toggle()
+            } label: {
+                Image(systemName: "sidebar.left")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 38, height: 34)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Hide or show the sidebar")
+
+            Divider()
+                .frame(height: 16)
+
+            Text(title)
+                .font(.system(size: 13, weight: .bold))
+                .padding(.leading, 10)
+                .padding(.trailing, 14)
+        }
+        .frame(height: 34)
+        .glassPill()
     }
 }
 
@@ -126,22 +197,8 @@ struct Sidebar: View {
         .sheet(isPresented: $showAddSheet) { AddServerSheet() }
     }
 
-    /// Strip occupying the transparent titlebar. AppKit draws the traffic
-    /// lights over its leading edge; the add button mirrors them trailing.
     private var titleBar: some View {
-        HStack {
-            Spacer()
-            Button { showAddSheet = true } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .medium))
-                    .frame(width: 26, height: 26)
-                    .contentShape(Circle())
-            }
-            .glassCircleButton()
-            .help(loc("Add Link"))
-        }
-        .padding(.trailing, 10)
-        .frame(height: titleBarHeight)
+        Color.clear.frame(height: titleBarHeight)
     }
 }
 
@@ -191,6 +248,10 @@ private struct SidebarRow: View {
         .buttonStyle(.plain)
         .background { rowBackground }
         .onHover { isHovering = $0 }
+        // Ease the selection slab and hover wash in and out rather than
+        // snapping, so clicking a row feels like a gentle fade.
+        .animation(.easeInOut(duration: 0.3), value: isSelected)
+        .animation(.easeInOut(duration: 0.18), value: isHovering)
     }
 
     /// Selected rows get the Liquid Glass slab (quaternary fill pre-macOS 26);
@@ -945,6 +1006,21 @@ extension View {
             self.buttonStyle(.glass).buttonBorderShape(.circle)
         } else {
             self.buttonStyle(.bordered).buttonBorderShape(.circle)
+        }
+    }
+
+    /// Floating Liquid Glass capsule surface (the detail header pill). Uses
+    /// the clear glass variant so the pill stays light and airy, with a
+    /// quaternary-fill capsule fallback on earlier systems.
+    @ViewBuilder
+    func glassPill() -> some View {
+        if #available(macOS 26.0, *) {
+            self.glassEffect(
+                .clear.tint(.black.opacity(0.14)).interactive(),
+                in: Capsule(style: .continuous)
+            )
+        } else {
+            self.background(Capsule(style: .continuous).fill(.quaternary.opacity(0.8)))
         }
     }
 
