@@ -10,6 +10,21 @@ struct SettingsPane: View {
 
     @State private var helperInstalled = TunManager.isHelperInstalled
     @State private var showRouting = false
+    @State private var refreshHoursText = ""
+    @State private var showRefreshHoursPopover = false
+    @State private var portFieldText = ""
+    @State private var editingPortField: PortField?
+
+    private enum PortField: Identifiable {
+        case socks, http
+        var id: Self { self }
+        var title: String {
+            switch self {
+            case .socks: return "SOCKS Port"
+            case .http:  return "HTTP Port"
+            }
+        }
+    }
 
     var body: some View {
         @Bindable var store = store
@@ -27,14 +42,24 @@ struct SettingsPane: View {
                     HStack {
                         Text(loc("SOCKS port"))
                         Spacer()
-                        TextField("", value: $store.settings.socksPort, format: .number.grouping(.never))
-                            .frame(width: 80).multilineTextAlignment(.trailing)
+                        Text("\(store.settings.socksPort)")
+                            .foregroundStyle(.secondary)
+                        Button(loc("Set…")) {
+                            portFieldText = "\(store.settings.socksPort)"
+                            editingPortField = .socks
+                        }
+                        .glassButton()
                     }
                     HStack {
                         Text(loc("HTTP port"))
                         Spacer()
-                        TextField("", value: $store.settings.httpPort, format: .number.grouping(.never))
-                            .frame(width: 80).multilineTextAlignment(.trailing)
+                        Text("\(store.settings.httpPort)")
+                            .foregroundStyle(.secondary)
+                        Button(loc("Set…")) {
+                            portFieldText = "\(store.settings.httpPort)"
+                            editingPortField = .http
+                        }
+                        .glassButton()
                     }
                     Picker(loc("Log level"), selection: $store.settings.logLevel) {
                         ForEach(LogLevel.allCases) { l in Text(l.title).tag(l) }
@@ -104,10 +129,17 @@ struct SettingsPane: View {
                 Section(loc("Subscriptions")) {
                     Toggle(loc("Auto-update subscriptions"), isOn: $store.settings.autoUpdateSubscriptions)
                         .onChange(of: store.settings.autoUpdateSubscriptions) { _, _ in store.save() }
-                    Stepper(value: $store.settings.autoUpdateIntervalHours, in: 1...168) {
-                        Text("Every \(store.settings.autoUpdateIntervalHours) h")
+                    HStack {
+                        Text(loc("Subscription refresh period"))
+                        Spacer()
+                        Text("\(store.settings.autoUpdateIntervalHours) \(loc("hr"))")
+                            .foregroundStyle(.secondary)
+                        Button(loc("Set…")) {
+                            refreshHoursText = "\(store.settings.autoUpdateIntervalHours)"
+                            showRefreshHoursPopover = true
+                        }
+                        .glassButton()
                     }
-                    .onChange(of: store.settings.autoUpdateIntervalHours) { _, _ in store.save() }
                     Toggle(loc("Send HWID with subscription requests"), isOn: $store.settings.sendHwid)
                         .onChange(of: store.settings.sendHwid) { _, _ in store.save() }
                     Text(loc("Identifies this device to providers that require it."))
@@ -138,11 +170,76 @@ struct SettingsPane: View {
         .scrollContentBackground(.hidden)
         .navigationTitle(loc("Settings"))
         .sheet(isPresented: $showRouting) { RoutingSheet() }
+        .sheet(isPresented: $showRefreshHoursPopover) { refreshHoursSheet }
+        .sheet(item: $editingPortField) { field in portFieldSheet(field) }
         .onChange(of: store.settings.socksPort) { _, p in
             connection.ports.socks = p; store.save()
         }
         .onChange(of: store.settings.httpPort) { _, p in
             connection.ports.http = p; store.save()
         }
+    }
+
+    private var refreshHoursSheet: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(loc("Subscription refresh period"))
+                .font(.title2).bold()
+            HStack {
+                Text(loc("Refresh every"))
+                TextField("", text: $refreshHoursText)
+                    .frame(width: 50).multilineTextAlignment(.trailing)
+                    .onSubmit { commitRefreshHours() }
+                Text(loc("hr"))
+                    .foregroundStyle(.secondary)
+            }
+            HStack {
+                Spacer()
+                Button(loc("Cancel")) { showRefreshHoursPopover = false }
+                    .glassButton()
+                Button(loc("Save")) { commitRefreshHours() }
+                    .glassProminentButton()
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(width: 320)
+    }
+
+    private func commitRefreshHours() {
+        if let hours = Int(refreshHoursText.trimmingCharacters(in: .whitespaces)) {
+            store.settings.autoUpdateIntervalHours = min(max(hours, 1), 168)
+            store.save()
+        }
+        showRefreshHoursPopover = false
+    }
+
+    private func portFieldSheet(_ field: PortField) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(loc(field.title))
+                .font(.title2).bold()
+            TextField("", text: $portFieldText)
+                .frame(width: 100).multilineTextAlignment(.trailing)
+                .onSubmit { commitPortField(field) }
+            HStack {
+                Spacer()
+                Button(loc("Cancel")) { editingPortField = nil }
+                    .glassButton()
+                Button(loc("Save")) { commitPortField(field) }
+                    .glassProminentButton()
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(width: 320)
+    }
+
+    private func commitPortField(_ field: PortField) {
+        if let port = Int(portFieldText.trimmingCharacters(in: .whitespaces)) {
+            switch field {
+            case .socks: store.settings.socksPort = port
+            case .http:  store.settings.httpPort = port
+            }
+        }
+        editingPortField = nil
     }
 }
