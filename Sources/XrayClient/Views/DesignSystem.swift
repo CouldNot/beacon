@@ -205,7 +205,59 @@ struct WindowConfigurator: NSViewRepresentable {
             toolbar.showsBaselineSeparator = false
             window.toolbar = toolbar
             window.toolbarStyle = .unified
+
+            // The tall titlebar's chrome hit-tests across the entire strip,
+            // swallowing every click meant for the SwiftUI header underneath
+            // (sidebar toggle, refresh, search). Install the pass-through so
+            // only real titlebar controls keep their clicks.
+            Self.installTitlebarPassThrough
         }
+
+        /// There is no supported way to opt titlebar chrome out of hit
+        /// testing, so give `NSTitlebarContainerView` a `hitTest` override
+        /// that claims clicks only when they land on a real control (the
+        /// traffic lights) and returns nil otherwise, letting the event fall
+        /// through to the SwiftUI content that draws the floating header
+        /// pills. The container is the theme frame's direct subview, so it -
+        /// not the inner `NSTitlebarView` - is what must return nil for the
+        /// frame to move on to the content view. If AppKit ever renames the
+        /// class this simply does nothing and the strip stays inert rather
+        /// than breaking.
+        private static let installTitlebarPassThrough: Void = {
+            let selector = #selector(NSView.hitTest(_:))
+            guard let chromeClass = NSClassFromString("NSTitlebarContainerView"),
+                  let method = class_getInstanceMethod(chromeClass, selector)
+            else { return }
+
+            typealias HitTest = @convention(c) (NSView, Selector, NSPoint) -> NSView?
+            let inherited = unsafeBitCast(method_getImplementation(method), to: HitTest.self)
+
+            let replacement: @convention(block) (NSView, NSPoint) -> NSView? = { view, point in
+                guard let hit = inherited(view, selector, point) else { return nil }
+                // hitTest is only ever called on the main thread.
+                return MainActor.assumeIsolated {
+                    var candidate: NSView? = hit
+                    while let current = candidate, current !== view {
+                        if current is NSControl { return hit }
+                        candidate = current.superview
+                    }
+                    return nil
+                }
+            }
+            let imp = imp_implementationWithBlock(replacement)
+            // NSTitlebarContainerView inherits hitTest from NSView, so ADD an
+            // override to the container class alone. Never replace the
+            // inherited method in place - that would patch NSView.hitTest for
+            // every view in the app. (`inherited` keeps calling the NSView
+            // implementation, which is exactly the super behaviour the
+            // override wants.)
+            if !class_addMethod(chromeClass, selector, imp,
+                                method_getTypeEncoding(method)) {
+                // The class has its own hitTest (future macOS): patch that
+                // one directly; `inherited` is then its own implementation.
+                method_setImplementation(method, imp)
+            }
+        }()
     }
 }
 

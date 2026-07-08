@@ -76,9 +76,22 @@ struct ContentView: View {
     }
 
     /// Detail column: the floating pill header (sidebar toggle + page title)
-    /// on the titlebar strip, then the selected pane below.
+    /// on the titlebar strip, then the selected pane below. The header is a
+    /// top safe-area inset rather than a VStack sibling: on macOS 26 the
+    /// pane's ScrollView is hosted as a full-height NSScrollView that extends
+    /// under the header strip (that's what drives the scroll-edge effect), so
+    /// the header must live in the scroll view's safe area for SwiftUI to
+    /// hit-test its buttons instead of the scroll view.
     private var detailColumn: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        Group {
+            switch selection.wrappedValue {
+            case .servers:  ServersPane(searchVisible: $searchVisible)
+            case .log:      LogDetailPane()
+            case .settings: SettingsPane()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .top, spacing: 0) {
             HStack {
                 DetailHeaderPill(
                     title: loc(selection.wrappedValue.title),
@@ -93,15 +106,6 @@ struct ContentView: View {
             .padding(.leading, isSidebarCollapsed ? 104 : 16)
             .padding(.trailing, 16)
             .frame(height: 52)
-
-            Group {
-                switch selection.wrappedValue {
-                case .servers:  ServersPane(searchVisible: $searchVisible)
-                case .log:      LogDetailPane()
-                case .settings: SettingsPane()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
@@ -114,16 +118,9 @@ private struct DetailHeaderPill: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Button {
+            PillIconButton(systemImage: "sidebar.left", size: 14) {
                 isSidebarCollapsed.toggle()
-            } label: {
-                Image(systemName: "sidebar.left")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 38, height: 34)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
             .help("Hide or show the sidebar")
 
             Divider()
@@ -136,6 +133,38 @@ private struct DetailHeaderPill: View {
         }
         .frame(height: 34)
         .glassPill()
+    }
+}
+
+/// Icon button used inside the floating glass pills (sidebar toggle, refresh,
+/// search): a fixed hit area with a translucent circular wash behind the icon
+/// while hovered, so the pointer state reads without extra chrome.
+struct PillIconButton: View {
+    let systemImage: String
+    var size: CGFloat = 13
+    /// Highlights the icon (e.g. while the search field it toggles is open).
+    var isActive: Bool = false
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: size, weight: .medium))
+                .foregroundStyle(isActive ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                .frame(width: 38, height: 34)
+                .background {
+                    Circle()
+                        .fill(Color.primary.opacity(0.1))
+                        .frame(width: 26, height: 26)
+                        .opacity(isHovering ? 1 : 0)
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .animation(.easeInOut(duration: 0.15), value: isHovering)
     }
 }
 

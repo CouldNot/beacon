@@ -719,38 +719,24 @@ struct ServersTitleBarControls: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Button {
-                refresh()
-            } label: {
-                Group {
-                    if isRefreshing {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
+            if isRefreshing {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: 38, height: 34)
+            } else {
+                PillIconButton(systemImage: "arrow.clockwise") {
+                    refresh()
                 }
-                .frame(width: 38, height: 34)
-                .contentShape(Rectangle())
+                .disabled(store.allServers.isEmpty)
+                .help(loc("Refresh subscriptions and retest latency"))
             }
-            .buttonStyle(.plain)
-            .disabled(isRefreshing || store.allServers.isEmpty)
-            .help(loc("Refresh subscriptions and retest latency"))
 
             Divider()
                 .frame(height: 16)
 
-            Button {
+            PillIconButton(systemImage: "magnifyingglass", isActive: searchVisible) {
                 searchVisible.toggle()
-            } label: {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(searchVisible ? .primary : .secondary)
-                    .frame(width: 38, height: 34)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
             .help(loc("Search servers"))
         }
         .frame(height: 34)
