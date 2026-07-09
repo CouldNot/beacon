@@ -69,11 +69,12 @@ struct XrayClientApp: App {
             MenuBarContent()
                 .environment(store)
                 .environment(connection)
+                .environment(pinger)
                 .environment(loc)
         } label: {
             Image(systemName: connection.isConnected ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash")
         }
-        .menuBarExtraStyle(.menu)
+        .menuBarExtraStyle(.window)
     }
 
     /// Forces the whole app (window + menu-bar UI) to the chosen appearance by
