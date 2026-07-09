@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct AddServerSheet: View {
     @Environment(ServerStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(Loc.self) private var loc
 
     @State private var linkText = ""
     @State private var errorMessage: String?
@@ -13,7 +14,7 @@ struct AddServerSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Add Server(s)").font(.title2).bold()
-            Text("Paste one or more links (vless://, vmess://, trojan://, ss://, hysteria2://, tuic://, anytls://, wireguard://). One per line. Or import from a QR code.")
+            Text(loc("Paste one or more server links, one per line, or import from a QR code. Supports VLESS, VMess, Trojan, Shadowsocks, Hysteria2, TUIC, AnyTLS, and WireGuard."))
                 .font(.caption).foregroundStyle(.secondary)
 
             TextEditor(text: $linkText)
