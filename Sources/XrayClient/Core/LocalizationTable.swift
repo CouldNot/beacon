@@ -61,6 +61,37 @@ extension Loc {
             "ru": "Сохранить", "zh": "保存", "es": "Guardar", "hi": "सहेजें",
             "ar": "حفظ", "fr": "Enregistrer", "pt": "Salvar", "de": "Speichern",
             "ja": "保存", "id": "Simpan", "tr": "Kaydet"],
+        "Edit…": [
+            "ru": "Изменить…", "zh": "编辑…", "es": "Editar…", "hi": "संपादित करें…",
+            "ar": "تعديل…", "fr": "Modifier…", "pt": "Editar…", "de": "Bearbeiten…",
+            "ja": "編集…", "id": "Edit…", "tr": "Düzenle…"],
+
+        // MARK: Edit server sheet
+        "Edit Server": [
+            "ru": "Изменить сервер", "zh": "编辑服务器", "es": "Editar servidor",
+            "hi": "सर्वर संपादित करें", "ar": "تعديل الخادم", "fr": "Modifier le serveur",
+            "pt": "Editar servidor", "de": "Server bearbeiten", "ja": "サーバーを編集",
+            "id": "Edit server", "tr": "Sunucuyu düzenle"],
+        "Name": [
+            "ru": "Имя", "zh": "名称", "es": "Nombre", "hi": "नाम",
+            "ar": "الاسم", "fr": "Nom", "pt": "Nome", "de": "Name",
+            "ja": "名前", "id": "Nama", "tr": "Ad"],
+        "Address": [
+            "ru": "Адрес", "zh": "地址", "es": "Dirección", "hi": "पता",
+            "ar": "العنوان", "fr": "Adresse", "pt": "Endereço", "de": "Adresse",
+            "ja": "アドレス", "id": "Alamat", "tr": "Adres"],
+        "Protocol": [
+            "ru": "Протокол", "zh": "协议", "es": "Protocolo", "hi": "प्रोटोकॉल",
+            "ar": "البروتوكول", "fr": "Protocole", "pt": "Protocolo", "de": "Protokoll",
+            "ja": "プロトコル", "id": "Protokol", "tr": "Protokol"],
+        "Security": [
+            "ru": "Безопасность", "zh": "安全", "es": "Seguridad", "hi": "सुरक्षा",
+            "ar": "الأمان", "fr": "Sécurité", "pt": "Segurança", "de": "Sicherheit",
+            "ja": "セキュリティ", "id": "Keamanan", "tr": "Güvenlik"],
+        "None": [
+            "ru": "Нет", "zh": "无", "es": "Ninguna", "hi": "कोई नहीं",
+            "ar": "لا شيء", "fr": "Aucune", "pt": "Nenhuma", "de": "Keine",
+            "ja": "なし", "id": "Tidak ada", "tr": "Yok"],
 
         // MARK: Toolbar / footer
         "Subscription": [

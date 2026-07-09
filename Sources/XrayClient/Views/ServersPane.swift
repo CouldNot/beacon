@@ -24,6 +24,8 @@ struct ServersPane: View {
     @State private var showSubSheet = false
     /// Server whose QR code is currently being shown (drives the QR sheet).
     @State private var qrServer: ProxyConfig?
+    /// Server currently open in the per-server edit sheet.
+    @State private var editServer: ProxyConfig?
 
     @FocusState private var searchFocused: Bool
     /// Drives keyboard focus so arrow keys / Enter target the server list.
@@ -83,6 +85,9 @@ struct ServersPane: View {
         .sheet(isPresented: $showAddSheet) { AddServerSheet() }
         .sheet(isPresented: $showSubSheet) { SubscriptionSheet() }
         .sheet(item: $qrServer) { server in QRDisplaySheet(server: server) }
+        .sheet(item: $editServer) { server in
+            EditServerSheet(server: server)
+        }
     }
 
     // MARK: - Search
@@ -335,6 +340,7 @@ struct ServersPane: View {
                 NSPasteboard.general.setString(link, forType: .string)
             },
             onQR: { qrServer = server },
+            onEdit: { editServer = server },
             onDelete: { store.removeServer(id: server.id) }
         )
         .id(server.id)
@@ -573,6 +579,7 @@ private struct ServerRowView: View {
     let onPing: () -> Void
     let onCopy: () -> Void
     let onQR: () -> Void
+    let onEdit: () -> Void
     let onDelete: () -> Void
 
     @State private var isHovering = false
@@ -675,6 +682,7 @@ private struct ServerRowView: View {
             .disabled(isActive)
         Button(loc("Test Ping")) { onPing() }
         Divider()
+        Button(loc("Edit…")) { onEdit() }
         Button(loc("Copy Link")) { onCopy() }
         Button(loc("Show QR Code")) { onQR() }
         if canDelete {

@@ -74,6 +74,18 @@ final class ServerStore {
         removeServers(ids: [id])
     }
 
+    /// Replaces a server (matched by id) wherever it lives, preserving its
+    /// group. Used by the per-server edit sheet.
+    func updateServer(_ server: ProxyConfig) {
+        for i in subscriptions.indices {
+            if let j = subscriptions[i].servers.firstIndex(where: { $0.id == server.id }) {
+                subscriptions[i].servers[j] = server
+                save()
+                return
+            }
+        }
+    }
+
     // MARK: - Subscriptions
 
     func addOrUpdateSubscription(name: String, url: String,

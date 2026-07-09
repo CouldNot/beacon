@@ -31,7 +31,7 @@ enum TransportNetwork: String, Codable {
 }
 
 /// Security applied on top of the transport.
-enum StreamSecurity: String, Codable {
+enum StreamSecurity: String, Codable, CaseIterable {
     case none
     case tls
     case reality
