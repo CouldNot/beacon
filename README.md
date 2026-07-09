@@ -1,16 +1,12 @@
-<p align="center">
+<p>
   <img src="docs/icon.png" width="128" alt="Beacon icon">
 </p>
 
-<h1 align="center">Beacon</h1>
+<h1>Beacon</h1>
 
-<p align="center">A native macOS VPN client for the Xray-core and sing-box proxy engines, built with SwiftUI.</p>
+<p>Beacon is a a native macOS VPN client for the Xray-core and sing-box proxy engines. It is a fork of [faustyu1/veil](https://github.com/faustyu1/veil) and brings a modern SwiftUI interface to V2Box and V2rayN-style clients.</p>
 
-Beacon brings a Happ / v2RayTun-style experience to the Mac: subscription profiles, one-click connect, full-traffic tunneling, and professional domain/IP routing, all in a clean menu-bar app.
-
-> **Fork.** Beacon is a fork of [faustyu1/veil](https://github.com/faustyu1/veil).
-
-> **Disclaimer.** Beacon is a client for proxy protocols intended for privacy, development, and lawful circumvention of censorship. You are responsible for complying with the laws and terms of service that apply to you. The bundled cores ([Xray-core](https://github.com/XTLS/Xray-core), [sing-box](https://github.com/SagerNet/sing-box), [tun2socks](https://github.com/xjasonlyu/tun2socks)) are third-party software under their own licenses.
+<p>Beacon works on macOS Sonoma 14 or higher.</p>
 
 ## Contents
 
@@ -38,12 +34,6 @@ Beacon brings a Happ / v2RayTun-style experience to the Mac: subscription profil
 - Launch at login and connect/disconnect notifications
 - Localized in 12 languages
 - Safe shutdown that restores routes and DNS
-
-## Requirements
-
-- macOS 14 (Sonoma) or later
-- Apple Silicon or Intel
-- Swift 6 toolchain (Xcode 16+) to build from source
 
 ## Install (from a release)
 
