@@ -614,7 +614,7 @@ private struct ServerRowView: View {
         if isActive {
             Color.primary.opacity(0.07)
         } else if isSelected {
-            DS.accent.opacity(0.14)
+            Color.primary.opacity(0.10)
         } else if isHovering {
             Color.primary.opacity(0.04)
         }
