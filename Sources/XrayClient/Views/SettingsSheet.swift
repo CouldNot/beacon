@@ -30,14 +30,16 @@ struct SettingsPane: View {
         @Bindable var store = store
         Form {
                 Section(loc("Tunnel")) {
-                    Picker(loc("Mode"), selection: $store.settings.mode) {
-                        ForEach(TunnelMode.allCases) { m in Text(m.title).tag(m) }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Picker(loc("Mode"), selection: $store.settings.mode) {
+                            ForEach(TunnelMode.allCases) { m in Text(m.title).tag(m) }
+                        }
+                        .onChange(of: store.settings.mode) { _, m in
+                            connection.mode = m; store.save()
+                        }
+                        Text(store.settings.mode.subtitle)
+                            .font(.caption).foregroundStyle(.secondary)
                     }
-                    .onChange(of: store.settings.mode) { _, m in
-                        connection.mode = m; store.save()
-                    }
-                    Text(store.settings.mode.subtitle)
-                        .font(.caption).foregroundStyle(.secondary)
 
                     HStack {
                         Text(loc("SOCKS port"))
@@ -140,10 +142,12 @@ struct SettingsPane: View {
                         }
                         .glassButton()
                     }
-                    Toggle(loc("Send HWID with subscription requests"), isOn: $store.settings.sendHwid)
-                        .onChange(of: store.settings.sendHwid) { _, _ in store.save() }
-                    Text(loc("Identifies this device to providers that require it."))
-                        .font(.caption).foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle(loc("Send HWID with subscription requests"), isOn: $store.settings.sendHwid)
+                            .onChange(of: store.settings.sendHwid) { _, _ in store.save() }
+                        Text(loc("Identifies this device to providers that require it."))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
 
                 Section(loc("Window")) {
