@@ -17,9 +17,12 @@ struct XrayClientApp: App {
                 .environment(pinger)
                 .environment(loc)
                 .frame(minWidth: 760, minHeight: 520)
-                .preferredColorScheme(colorScheme)
                 .environment(\.layoutDirection, loc.isRTL ? .rightToLeft : .leftToRight)
+                .onChange(of: store.settings.appearance) { _, new in
+                    Self.applyAppearance(new)
+                }
                 .onAppear {
+                    Self.applyAppearance(store.settings.appearance)
                     loc.language = store.settings.language
                     connection.mode = store.settings.mode
                     connection.routingRules = store.settings.effectiveRoutingRules
@@ -73,11 +76,16 @@ struct XrayClientApp: App {
         .menuBarExtraStyle(.menu)
     }
 
-    private var colorScheme: ColorScheme? {
-        switch store.settings.appearance {
-        case .system: return nil
-        case .light:  return .light
-        case .dark:   return .dark
+    /// Forces the whole app (window + menu-bar UI) to the chosen appearance by
+    /// driving `NSApp.appearance` directly. Unlike SwiftUI's
+    /// `.preferredColorScheme`, setting this back to `nil` reliably reverts to
+    /// following the system appearance, which fixes System → Light → System not
+    /// returning to the actual system theme.
+    private static func applyAppearance(_ appearance: AppAppearance) {
+        switch appearance {
+        case .system: NSApp.appearance = nil
+        case .light:  NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark:   NSApp.appearance = NSAppearance(named: .darkAqua)
         }
     }
 }
