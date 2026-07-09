@@ -471,9 +471,7 @@ private struct ConnectionStatusCard: View {
     private var titleLine: some View {
         HStack(spacing: 7) {
             if let server = shownServer {
-                let (flag, rest) = ServerFlag.split(server.name)
-                if let flag { Text(flag).font(.system(size: 14)) }
-                Text(rest)
+                Text(ServerFlag.split(server.name).rest)
                     .font(.system(size: 15, weight: .bold))
                     .lineLimit(1)
             } else {
@@ -586,7 +584,7 @@ private struct ServerRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            flagView
+            statusDot
             VStack(alignment: .leading, spacing: 2) {
                 Text(ServerFlag.split(server.name).rest)
                     .font(.system(size: 13, weight: .semibold))
@@ -599,11 +597,6 @@ private struct ServerRowView: View {
             Spacer(minLength: 12)
             latencyView
             actionsMenu
-            if isActive {
-                Image(systemName: "dot.radiowaves.left.and.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.green)
-            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -627,18 +620,13 @@ private struct ServerRowView: View {
         }
     }
 
-    @ViewBuilder
-    private var flagView: some View {
-        if let flag = ServerFlag.split(server.name).flag {
-            Text(flag)
-                .font(.system(size: 20))
-                .frame(width: 30)
-        } else {
-            Image(systemName: "globe")
-                .font(.system(size: 15))
-                .foregroundStyle(.secondary)
-                .frame(width: 30)
-        }
+    /// Leading connection indicator: green when this server is the active
+    /// tunnel, a muted gray otherwise.
+    private var statusDot: some View {
+        Circle()
+            .fill(isActive ? Color.green : Color.secondary.opacity(0.35))
+            .frame(width: 8, height: 8)
+            .frame(width: 18)
     }
 
     @ViewBuilder

@@ -55,17 +55,12 @@ struct EditServerSheet: View {
     }
 
     private var iconTile: some View {
-        let flag = ServerFlag.split(name).flag
-        return ZStack {
+        ZStack {
             RoundedRectangle(cornerRadius: 11, style: .continuous)
                 .fill(.quaternary.opacity(0.7))
-            if let flag {
-                Text(flag).font(.system(size: 22))
-            } else {
-                Image(systemName: "globe")
-                    .font(.system(size: 18))
-                    .foregroundStyle(.secondary)
-            }
+            Image(systemName: "dot.radiowaves.left.and.right")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.secondary)
         }
         .frame(width: 46, height: 46)
     }
