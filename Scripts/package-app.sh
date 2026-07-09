@@ -9,7 +9,7 @@ cd "${ROOT}"
 
 VERSION="${1:-1.0.0}"
 CONFIG="release"
-BUILD_NAME="XrayClient"      # SPM product (binary) name
+BUILD_NAME="Beacon"          # SPM product (binary) name
 APP_NAME="Beacon"             # user-facing app + bundle name
 APP_DIR="${ROOT}/${APP_NAME}.app"
 DIST_DIR="${ROOT}/dist"

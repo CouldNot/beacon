@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    name: Build & Publish Veil.app
+    name: Build & Publish Beacon.app
     # macos-26 (Tahoe) ships the macOS 26 SDK. Linking against it is what
     # enables the modern Liquid Glass / Tahoe look — an app built against the
     # macOS 15 SDK renders in legacy style even when run on macOS 26+.
@@ -41,12 +41,12 @@ jobs:
           swift build -c release
           swift test
 
-      - name: Package Veil.app
+      - name: Package Beacon.app
         run: Scripts/package-app.sh "${{ steps.version.outputs.version }}"
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          name: Veil ${{ steps.version.outputs.version }}
+          name: Beacon ${{ steps.version.outputs.version }}
           generate_release_notes: true
-          files: dist/Veil.app.zip
+          files: dist/Beacon.app.zip
