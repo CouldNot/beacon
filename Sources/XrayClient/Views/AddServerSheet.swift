@@ -4,6 +4,8 @@ import UniformTypeIdentifiers
 /// Sheet for adding one or more servers by pasting share links (into Manual group).
 struct AddServerSheet: View {
     @Environment(ServerStore.self) private var store
+    @Environment(ConnectionManager.self) private var connection
+    @Environment(PingTester.self) private var pinger
     @Environment(\.dismiss) private var dismiss
     @Environment(Loc.self) private var loc
 
@@ -83,6 +85,10 @@ struct AddServerSheet: View {
             return
         }
         store.addManualServers(parsed)
+        // Immediately probe the new servers so their latency + signal bars
+        // populate without the user having to test each one manually.
+        let tunActive = connection.mode == .tun && connection.isConnected
+        pinger.test(parsed, tunActive: tunActive)
         dismiss()
     }
 }
@@ -108,6 +114,8 @@ struct ScannerSheet: View {
 /// Sheet for importing a subscription URL as a new profile.
 struct SubscriptionSheet: View {
     @Environment(ServerStore.self) private var store
+    @Environment(ConnectionManager.self) private var connection
+    @Environment(PingTester.self) private var pinger
     @Environment(\.dismiss) private var dismiss
 
     @State private var nameText = ""
@@ -159,6 +167,9 @@ struct SubscriptionSheet: View {
                                           servers: result.servers,
                                           userinfo: result.userinfo,
                                           announce: result.announce)
+            // Probe the imported servers so latencies show up right away.
+            let tunActive = connection.mode == .tun && connection.isConnected
+            pinger.test(result.servers, tunActive: tunActive)
             dismiss()
         } catch {
             message = "Error: \(error.localizedDescription)"

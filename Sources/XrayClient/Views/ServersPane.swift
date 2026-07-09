@@ -638,15 +638,16 @@ private struct ServerRowView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "cellularbars", variableValue: signalLevel(ms))
                         .font(.system(size: 12))
-                        .foregroundStyle(latencyColor(ms))
+                        .foregroundStyle(.secondary)
                     Text("\(ms) ms")
                         .monoNumeric(.caption)
+                        .foregroundStyle(.secondary)
                         .frame(minWidth: 48, alignment: .trailing)
                 }
             } else {
                 Text(loc("timeout"))
                     .font(.system(size: 11))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -686,14 +687,6 @@ private struct ServerRowView: View {
         case ..<160:  return 0.75
         case ..<320:  return 0.5
         default:      return 0.25
-        }
-    }
-
-    private func latencyColor(_ ms: Int) -> Color {
-        switch ms {
-        case ..<150: return .green
-        case ..<350: return .orange
-        default:     return .red
         }
     }
 }
