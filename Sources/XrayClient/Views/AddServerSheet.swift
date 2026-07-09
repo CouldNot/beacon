@@ -15,27 +15,23 @@ struct AddServerSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Add Server(s)").font(.title2).bold()
             Text(loc("Paste one or more server links, one per line, or import from a QR code. Supports VLESS, VMess, Trojan, Shadowsocks, Hysteria2, TUIC, AnyTLS, and WireGuard."))
-                .font(.caption).foregroundStyle(.secondary)
+                .foregroundStyle(.secondary)
 
             TextEditor(text: $linkText)
                 .font(.system(.body, design: .monospaced))
+                .padding(6)
                 .frame(minHeight: 120)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(.secondary.opacity(0.3)))
+                .border(.secondary.opacity(0.3))
 
             HStack(spacing: 8) {
-                Button {
+                Button(loc("From Image…")) {
                     importFromImage()
-                } label: {
-                    Label("From image…", systemImage: "qrcode")
                 }
-                Button {
+                Button(loc("Scan Camera…")) {
                     showScanner = true
-                } label: {
-                    Label("Scan camera", systemImage: "camera")
                 }
                 Spacer()
             }
-            .controlSize(.small)
 
             if let errorMessage {
                 Text(errorMessage).font(.caption).foregroundStyle(.red)
@@ -123,7 +119,7 @@ struct SubscriptionSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Add Subscription").font(.title2).bold()
             Text("Each subscription becomes its own profile group.")
-                .font(.caption).foregroundStyle(.secondary)
+                .foregroundStyle(.secondary)
 
             TextField("Name (optional)", text: $nameText)
                 .textFieldStyle(.roundedBorder)
