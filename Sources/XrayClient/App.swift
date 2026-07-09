@@ -21,6 +21,9 @@ struct XrayClientApp: App {
                 .onChange(of: store.settings.appearance) { _, new in
                     Self.applyAppearance(new)
                 }
+                .onChange(of: store.settings.closeToTray) { _, new in
+                    appDelegate.closeToTray = new
+                }
                 .onAppear {
                     Self.applyAppearance(store.settings.appearance)
                     loc.language = store.settings.language
