@@ -37,7 +37,7 @@ struct SettingsPane: View {
                         .onChange(of: store.settings.mode) { _, m in
                             connection.mode = m; store.save()
                         }
-                        Text(store.settings.mode.subtitle)
+                        Text(loc(store.settings.mode.subtitle))
                             .font(.caption).foregroundStyle(.secondary)
                     }
 
@@ -105,8 +105,8 @@ struct SettingsPane: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(helperInstalled ? loc("Helper installed") : loc("Helper not installed"))
                             Text(helperInstalled
-                                 ? "TUN switches servers without asking for a password."
-                                 : "Install once to stop password prompts on every switch.")
+                                 ? loc("TUN switches servers without asking for a password.")
+                                 : loc("Install once to stop password prompts on every switch."))
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -125,7 +125,7 @@ struct SettingsPane: View {
                         }
                     }
                 } header: {
-                    Text("TUN Helper")
+                    Text(loc("TUN Helper"))
                 }
 
                 Section(loc("Subscriptions")) {

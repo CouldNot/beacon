@@ -300,7 +300,7 @@ private struct SidebarRow: View {
         .onHover { isHovering = $0 }
         // Ease the selection slab and hover wash in and out rather than
         // snapping, so clicking a row feels like a gentle fade.
-        .animation(.easeInOut(duration: 0.3), value: isSelected)
+        .animation(.easeInOut(duration: 0.08), value: isSelected)
         .animation(.easeInOut(duration: 0.18), value: isHovering)
     }
 

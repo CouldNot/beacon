@@ -207,6 +207,20 @@ extension Loc {
             "ru": "Режим", "zh": "模式", "es": "Modo", "hi": "मोड",
             "ar": "الوضع", "fr": "Mode", "pt": "Modo", "de": "Modus",
             "ja": "モード", "id": "Mode", "tr": "Mod"],
+        "Browsers & proxy-aware apps only.": [
+            "ru": "Только браузеры и приложения с поддержкой прокси.", "zh": "仅浏览器和支持代理的应用。",
+            "es": "Solo navegadores y apps compatibles con proxy.", "hi": "केवल ब्राउज़र और प्रॉक्सी-सक्षम ऐप्स।",
+            "ar": "المتصفحات والتطبيقات المتوافقة مع البروكسي فقط.", "fr": "Navigateurs et applis compatibles proxy uniquement.",
+            "pt": "Apenas navegadores e apps compatíveis com proxy.", "de": "Nur Browser und proxyfähige Apps.",
+            "ja": "ブラウザとプロキシ対応アプリのみ。", "id": "Hanya browser dan aplikasi yang mendukung proksi.",
+            "tr": "Yalnızca tarayıcılar ve proxy destekli uygulamalar."],
+        "Every app on the device.": [
+            "ru": "Все приложения на устройстве.", "zh": "设备上的所有应用。",
+            "es": "Todas las apps del dispositivo.", "hi": "डिवाइस पर मौजूद हर ऐप।",
+            "ar": "كل تطبيق على الجهاز.", "fr": "Toutes les applis de l'appareil.",
+            "pt": "Todos os apps do dispositivo.", "de": "Jede App auf dem Gerät.",
+            "ja": "デバイス上のすべてのアプリ。", "id": "Setiap aplikasi di perangkat.",
+            "tr": "Cihazdaki her uygulama."],
         "Appearance": [
             "ru": "Оформление", "zh": "外观", "es": "Apariencia", "hi": "रूप",
             "ar": "المظهر", "fr": "Apparence", "pt": "Aparência", "de": "Erscheinungsbild",
@@ -228,6 +242,24 @@ extension Loc {
             "hi": "सदस्यताएं स्वतः अपडेट करें", "ar": "تحديث الاشتراكات تلقائيًا", "fr": "Mettre à jour les abonnements auto",
             "pt": "Atualizar assinaturas automaticamente", "de": "Abos automatisch aktualisieren",
             "ja": "サブスクを自動更新", "id": "Perbarui langganan otomatis", "tr": "Abonelikleri otomatik güncelle"],
+        "Subscription refresh period": [
+            "ru": "Период обновления подписки", "zh": "订阅刷新周期", "es": "Periodo de actualización de suscripción",
+            "hi": "सदस्यता रिफ्रेश अवधि", "ar": "فترة تحديث الاشتراك", "fr": "Période de rafraîchissement de l'abonnement",
+            "pt": "Período de atualização da assinatura", "de": "Aktualisierungsintervall des Abos",
+            "ja": "サブスク更新間隔", "id": "Periode penyegaran langganan", "tr": "Abonelik yenileme süresi"],
+        "Refresh every:": [
+            "ru": "Обновлять каждые:", "zh": "每隔：", "es": "Actualizar cada:",
+            "hi": "हर बार रिफ्रेश करें:", "ar": "التحديث كل:", "fr": "Actualiser toutes les :",
+            "pt": "Atualizar cada:", "de": "Aktualisieren alle:",
+            "ja": "更新間隔：", "id": "Segarkan setiap:", "tr": "Şu sıklıkla yenile:"],
+        "hr": [
+            "ru": "ч", "zh": "小时", "es": "h", "hi": "घं",
+            "ar": "س", "fr": "h", "pt": "h", "de": "Std",
+            "ja": "時間", "id": "jam", "tr": "sa"],
+        "Set…": [
+            "ru": "Задать…", "zh": "设置…", "es": "Definir…", "hi": "सेट करें…",
+            "ar": "تعيين…", "fr": "Définir…", "pt": "Definir…", "de": "Festlegen…",
+            "ja": "設定…", "id": "Atur…", "tr": "Ayarla…"],
         "Send HWID with subscription requests": [
             "ru": "Отправлять HWID с запросами подписки", "zh": "订阅请求附带 HWID", "es": "Enviar HWID con solicitudes de suscripción",
             "hi": "सदस्यता अनुरोधों के साथ HWID भेजें", "ar": "إرسال HWID مع طلبات الاشتراك", "fr": "Envoyer le HWID avec les demandes d'abonnement",
@@ -268,11 +300,29 @@ extension Loc {
             "pt": "Conectar ao iniciar", "de": "Auto-Verbindung beim Start",
             "ja": "起動時に自動接続", "id": "Sambung otomatis saat mulai",
             "tr": "Başlangıçta otomatik bağlan"],
+        "TUN Helper": [
+            "ru": "Хелпер TUN", "zh": "TUN 助手", "es": "Asistente TUN", "hi": "TUN हेल्पर",
+            "ar": "مساعد TUN", "fr": "Assistant TUN", "pt": "Auxiliar TUN", "de": "TUN-Helfer",
+            "ja": "TUNヘルパー", "id": "Helper TUN", "tr": "TUN Yardımcısı"],
         "Helper installed": [
             "ru": "Хелпер установлен", "zh": "助手已安装", "es": "Asistente instalado",
             "hi": "हेल्पर स्थापित", "ar": "تم تثبيت المساعد", "fr": "Assistant installé",
             "pt": "Auxiliar instalado", "de": "Helfer installiert", "ja": "ヘルパー導入済み",
             "id": "Helper terpasang", "tr": "Yardımcı kuruldu"],
+        "TUN switches servers without asking for a password.": [
+            "ru": "TUN переключает серверы без запроса пароля.", "zh": "TUN 切换服务器时无需输入密码。",
+            "es": "TUN cambia de servidor sin pedir contraseña.", "hi": "TUN पासवर्ड मांगे बिना सर्वर बदलता है।",
+            "ar": "يبدّل TUN الخوادم دون طلب كلمة مرور.", "fr": "TUN change de serveur sans demander de mot de passe.",
+            "pt": "O TUN troca de servidor sem pedir senha.", "de": "TUN wechselt Server ohne Passwortabfrage.",
+            "ja": "TUNはパスワードを求めずにサーバーを切り替えます。", "id": "TUN mengganti server tanpa meminta kata sandi.",
+            "tr": "TUN, şifre sormadan sunucuları değiştirir."],
+        "Install once to stop password prompts on every switch.": [
+            "ru": "Установите один раз, чтобы не вводить пароль при каждом переключении.", "zh": "安装一次即可在每次切换时无需输入密码。",
+            "es": "Instálalo una vez para evitar la contraseña en cada cambio.", "hi": "हर बार पासवर्ड पूछे जाने से बचने के लिए एक बार इंस्टॉल करें।",
+            "ar": "ثبّته مرة واحدة لتجنب طلب كلمة المرور عند كل تبديل.", "fr": "Installez-le une fois pour éviter le mot de passe à chaque changement.",
+            "pt": "Instale uma vez para evitar a senha em cada troca.", "de": "Einmal installieren, um Passwortabfragen bei jedem Wechsel zu vermeiden.",
+            "ja": "一度インストールすると、切り替えごとのパスワード入力が不要になります。", "id": "Pasang sekali untuk menghindari kata sandi di setiap pergantian.",
+            "tr": "Her değişimde şifre istemini önlemek için bir kez kurun."],
         "Helper not installed": [
             "ru": "Хелпер не установлен", "zh": "助手未安装", "es": "Asistente no instalado",
             "hi": "हेल्पर स्थापित नहीं", "ar": "المساعد غير مثبت", "fr": "Assistant non installé",
