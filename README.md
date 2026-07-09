@@ -4,7 +4,7 @@
 
 <h1>Beacon</h1>
 
-<p>Beacon is a a native macOS VPN client for the Xray-core and sing-box proxy engines. It is a fork of [faustyu1/veil](https://github.com/faustyu1/veil) and brings a modern SwiftUI interface to V2Box and V2rayN-style clients.</p>
+<p>Beacon is a native macOS VPN client for the Xray-core and sing-box proxy engines. It is a fork of <a href="https://github.com/faustyu1/veil">faustyu1/veil</a> and brings a modern SwiftUI interface to V2Box and V2rayN-style clients.</p>
 
 <p>Beacon works on macOS Sonoma 14 or higher.</p>
 
