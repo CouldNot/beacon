@@ -20,8 +20,8 @@ struct SettingsPane: View {
         var id: Self { self }
         var title: String {
             switch self {
-            case .socks: return "SOCKS Port"
-            case .http:  return "HTTP Port"
+            case .socks: return "SOCKS port"
+            case .http:  return "HTTP port"
             }
         }
     }
@@ -42,7 +42,7 @@ struct SettingsPane: View {
                     HStack {
                         Text(loc("SOCKS port"))
                         Spacer()
-                        Text("\(store.settings.socksPort)")
+                        Text(String(store.settings.socksPort))
                             .foregroundStyle(.secondary)
                         Button(loc("Set…")) {
                             portFieldText = "\(store.settings.socksPort)"
@@ -53,7 +53,7 @@ struct SettingsPane: View {
                     HStack {
                         Text(loc("HTTP port"))
                         Spacer()
-                        Text("\(store.settings.httpPort)")
+                        Text(String(store.settings.httpPort))
                             .foregroundStyle(.secondary)
                         Button(loc("Set…")) {
                             portFieldText = "\(store.settings.httpPort)"
@@ -132,7 +132,7 @@ struct SettingsPane: View {
                     HStack {
                         Text(loc("Subscription refresh period"))
                         Spacer()
-                        Text("\(store.settings.autoUpdateIntervalHours) \(loc("hr"))")
+                        Text("\(String(store.settings.autoUpdateIntervalHours)) \(loc("hr"))")
                             .foregroundStyle(.secondary)
                         Button(loc("Set…")) {
                             refreshHoursText = "\(store.settings.autoUpdateIntervalHours)"
@@ -180,29 +180,56 @@ struct SettingsPane: View {
         }
     }
 
-    private var refreshHoursSheet: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(loc("Subscription refresh period"))
-                .font(.title2).bold()
+    /// Shared design for the "set a single value" prompt sheets (subscription
+    /// refresh period, SOCKS/HTTP ports): a System-Settings-style card with a
+    /// tinted content row (label left, field right) above a divider and a
+    /// trailing Cancel/Done footer.
+    private func promptSheet(
+        label: String,
+        text: Binding<String>,
+        suffix: String? = nil,
+        onCancel: @escaping () -> Void,
+        onCommit: @escaping () -> Void
+    ) -> some View {
+        VStack(spacing: 0) {
             HStack {
-                Text(loc("Refresh every"))
-                TextField("", text: $refreshHoursText)
-                    .frame(width: 50).multilineTextAlignment(.trailing)
-                    .onSubmit { commitRefreshHours() }
-                Text(loc("hr"))
-                    .foregroundStyle(.secondary)
+                Text(label)
+                Spacer()
+                TextField("", text: text)
+                    .textFieldStyle(.plain)
+                    .multilineTextAlignment(.trailing)
+                    .onSubmit(onCommit)
+                if let suffix {
+                    Text(suffix).foregroundStyle(.secondary)
+                }
             }
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.primary.opacity(0.08)))
+            .padding(16)
+
+            Divider()
+
             HStack {
                 Spacer()
-                Button(loc("Cancel")) { showRefreshHoursPopover = false }
+                Button(loc("Cancel"), action: onCancel)
                     .glassButton()
-                Button(loc("Save")) { commitRefreshHours() }
+                Button(loc("Done"), action: onCommit)
                     .glassProminentButton()
                     .keyboardShortcut(.defaultAction)
             }
+            .padding(16)
         }
-        .padding(24)
-        .frame(width: 320)
+        .frame(width: 380)
+    }
+
+    private var refreshHoursSheet: some View {
+        promptSheet(
+            label: loc("Refresh every:"),
+            text: $refreshHoursText,
+            suffix: loc("hr"),
+            onCancel: { showRefreshHoursPopover = false },
+            onCommit: commitRefreshHours
+        )
     }
 
     private func commitRefreshHours() {
@@ -214,23 +241,12 @@ struct SettingsPane: View {
     }
 
     private func portFieldSheet(_ field: PortField) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(loc(field.title))
-                .font(.title2).bold()
-            TextField("", text: $portFieldText)
-                .frame(width: 100).multilineTextAlignment(.trailing)
-                .onSubmit { commitPortField(field) }
-            HStack {
-                Spacer()
-                Button(loc("Cancel")) { editingPortField = nil }
-                    .glassButton()
-                Button(loc("Save")) { commitPortField(field) }
-                    .glassProminentButton()
-                    .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(24)
-        .frame(width: 320)
+        promptSheet(
+            label: loc(field.title) + ":",
+            text: $portFieldText,
+            onCancel: { editingPortField = nil },
+            onCommit: { commitPortField(field) }
+        )
     }
 
     private func commitPortField(_ field: PortField) {
