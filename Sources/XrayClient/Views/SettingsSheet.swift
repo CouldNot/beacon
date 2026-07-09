@@ -125,7 +125,7 @@ struct SettingsPane: View {
                         }
                     }
                 } header: {
-                    Text("TUN Helper (no-password)")
+                    Text("TUN Helper")
                 }
 
                 Section(loc("Subscriptions")) {
@@ -159,7 +159,7 @@ struct SettingsPane: View {
                         .onChange(of: store.settings.launchAtLogin) { _, on in
                             LoginItem.setEnabled(on); store.save()
                         }
-                    Toggle(loc("Notify on connect / disconnect"), isOn: $store.settings.notifyOnConnect)
+                    Toggle(loc("Notify on connect/disconnect"), isOn: $store.settings.notifyOnConnect)
                         .onChange(of: store.settings.notifyOnConnect) { _, on in
                             connection.notifyOnConnect = on
                             if on { NotificationManager.requestAuthorization() }

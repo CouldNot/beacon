@@ -14,8 +14,8 @@ enum TunnelMode: String, Codable, CaseIterable, Identifiable {
     }
     var subtitle: String {
         switch self {
-        case .systemProxy: return "Browsers & proxy-aware apps. No password needed."
-        case .tun:         return "All traffic incl. Telegram, terminal, games. Asks for password."
+        case .systemProxy: return "Browsers & proxy-aware apps only."
+        case .tun:         return "Every app on the device."
         }
     }
 }
