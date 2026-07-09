@@ -71,7 +71,7 @@ struct XrayClientApp: App {
                 .environment(connection)
                 .environment(loc)
         } label: {
-            Image(systemName: connection.isConnected ? "shield.lefthalf.filled" : "shield.slash")
+            Image(systemName: connection.isConnected ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash")
         }
         .menuBarExtraStyle(.menu)
     }
